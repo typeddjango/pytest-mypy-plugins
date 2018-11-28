@@ -2,7 +2,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Dict
+from typing import TYPE_CHECKING, List, Dict, Iterator
 
 import pytest
 from _pytest._code.code import ReprFileLocation, ReprEntry, ExceptionInfo
@@ -42,12 +42,12 @@ class TestItem(pytest.Item):
         self.starting_lineno = starting_lineno
         self.expected_output_lines = output_lines
         self.root_directory = config.option.mypy_testing_base
-        self.base_ini_fpath = config.option.base_ini_file
+        self.base_ini_fpath = config.option.mypy_ini_file
         self.files = files
         self.custom_environment = custom_environment
 
     @contextmanager
-    def temp_directory(self) -> Path:
+    def temp_directory(self) -> Iterator[Path]:
         with tempfile.TemporaryDirectory(prefix='mypy-pytest-',
                                          dir=self.root_directory) as tmpdir_name:
             yield Path(self.root_directory) / tmpdir_name

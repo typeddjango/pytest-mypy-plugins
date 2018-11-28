@@ -17,6 +17,11 @@ jobs:
     script: |
       set -e
       pytest
+  - name: "typecheck with mypy"
+    python: 3.7
+    script: |
+      set -e
+      mypy .
 
 before_install: |
   # Upgrade pip, setuptools, and wheel

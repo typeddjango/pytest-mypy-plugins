@@ -29,6 +29,5 @@ def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup('mypy-tests')
     group.addoption('--mypy-testing-base', type=str, default='/tmp',
                     help='Base directory for tests to use')
-    group.addoption('--base-ini-file', type=str)
-    group.addoption('--mypy-verbose', action='count',
-                    help='Set the verbose flag when creating mypy Options')
+    group.addoption('--mypy-ini-file', type=str,
+                    help='Which .ini file to use as a default config for tests')
