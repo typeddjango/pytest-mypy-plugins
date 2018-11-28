@@ -28,4 +28,4 @@ before_install: |
   pip install -U pip setuptools wheel
 
 install: |
-  pip install .
+  pip install -e .
