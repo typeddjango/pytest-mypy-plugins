@@ -1,0 +1,5 @@
+class MyClass:
+    class Meta:
+        pass
+
+def func(arg: str): pass

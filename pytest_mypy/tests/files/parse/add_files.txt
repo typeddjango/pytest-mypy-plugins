@@ -1,0 +1,5 @@
+print('hello, world')
+[file mysettings.py]
+mysetting
+[file mysettings2.py]
+mysetting2
