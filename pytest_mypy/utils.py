@@ -220,6 +220,9 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
             error_message = _add_aligned_message(expected[first_diff], actual[first_diff],
                                                  error_message)
 
+        if len(expected) == 0:
+            raise TypecheckAssertionError(f'Output is not expected: \n{error_message}',
+                                          lineno=0)
         first_failure = expected[first_diff]
         if first_failure:
             lineno = int(first_failure.split(' ')[0].strip(':').split(':')[1])

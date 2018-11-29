@@ -26,6 +26,16 @@ class TraceLastReprEntry(ReprEntry):
         return
 
 
+def make_files(rootdir: Path, files_to_create: Dict[str, str]) -> List[str]:
+    created_modules = []
+    for rel_fpath, file_contents in files_to_create.items():
+        fpath = rootdir / rel_fpath
+        fpath.parent.mkdir(parents=True, exist_ok=True)
+        fpath.write_text(file_contents)
+        created_modules.append(fname_to_module(fpath, root_path=rootdir))
+    return created_modules
+
+
 class TestItem(pytest.Item):
     def __init__(self,
                  name: str,
@@ -56,31 +66,7 @@ class TestItem(pytest.Item):
         with self.temp_directory() as tmpdir_path:
             if not self.source_code:
                 return
-
-            # if self.ini_file_contents:
-            #     mypy_ini_fpath = tmpdir_path / 'mypy.ini'
-            #     mypy_ini_fpath.write_text(self.ini_file_contents)
-
-            test_specific_modules = []
-            for fname, contents in self.files.items():
-                fpath = tmpdir_path / fname
-                #
-                # if create_file.make_parent_packages:
-                #     fpath.parent.mkdir(parents=True, exist_ok=True)
-                #     for parent in fpath.parents:
-                #         try:
-                #             parent.relative_to(tmpdir_path)
-                #             if parent != tmpdir_path:
-                #                 parent_init_file = parent / '__init__.py'
-                #                 parent_init_file.write_text('')
-                #                 test_specific_modules.append(fname_to_module(parent,
-                #                                                              root_path=tmpdir_path))
-                #         except ValueError:
-                #             break
-
-                fpath.write_text(contents)
-                test_specific_modules.append(fname_to_module(fpath,
-                                                             root_path=tmpdir_path))
+            test_specific_modules = make_files(tmpdir_path, self.files)
 
             with utils.temp_environ(), utils.temp_path():
                 for key, val in (self.custom_environment or {}).items():
@@ -113,7 +99,7 @@ class TestItem(pytest.Item):
 
     def prepare_mypy_cmd_options(self) -> List[str]:
         mypy_cmd_options = [
-            '--raise-exceptions',
+            '--show-traceback',
             '--no-silence-site-packages'
         ]
         python_version = '.'.join([str(part) for part in sys.version_info[:2]])
