@@ -46,7 +46,7 @@ MIN_LINE_LENGTH_FOR_ALIGNMENT = 5
 
 
 class TypecheckAssertionError(AssertionError):
-    def __init__(self, error_message: str, lineno: int):
+    def __init__(self, error_message: Optional[str] = None, lineno: int = 0):
         self.error_message = error_message
         self.lineno = lineno
 
@@ -221,8 +221,8 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
                                                  error_message)
 
         if len(expected) == 0:
-            raise TypecheckAssertionError(f'Output is not expected: \n{error_message}',
-                                          lineno=0)
+            raise TypecheckAssertionError(f'Output is not expected: \n{error_message}')
+
         first_failure = expected[first_diff]
         if first_failure:
             lineno = int(first_failure.split(' ')[0].strip(':').split(':')[1])

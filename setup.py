@@ -14,7 +14,8 @@ setup(
         'pytest',
         'mypy',
         'decorator',
-        'dataclasses'
+        'dataclasses',
+        'capturer'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

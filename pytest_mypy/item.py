@@ -4,11 +4,15 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Dict, Iterator
 
+import capturer
 import pytest
 from _pytest._code.code import ReprFileLocation, ReprEntry, ExceptionInfo
 from _pytest.config import Config
 from decorator import contextmanager
-from mypy import api as mypy_api
+from mypy import build
+from mypy.errors import CompileError
+from mypy.fscache import FileSystemCache
+from mypy.main import process_options
 
 from pytest_mypy import utils
 from pytest_mypy.utils import fname_to_module, assert_string_arrays_equal, TypecheckAssertionError
@@ -32,8 +36,52 @@ def make_files(rootdir: Path, files_to_create: Dict[str, str]) -> List[str]:
         fpath = rootdir / rel_fpath
         fpath.parent.mkdir(parents=True, exist_ok=True)
         fpath.write_text(file_contents)
-        created_modules.append(fname_to_module(fpath, root_path=rootdir))
+
+        created_module = fname_to_module(fpath, root_path=rootdir)
+        if created_module:
+            created_modules.append(created_module)
     return created_modules
+
+
+def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
+    if ':' not in line:
+        return line
+    out_fpath, res_line = line.split(':', 1)
+    line = os.path.relpath(out_fpath, start=rootdir) + ':' + res_line
+    return line.strip().replace('.py', '')
+
+
+class ReturnCodes:
+    SUCCESS = 0
+    FAIL = 1
+    FATAL_ERROR = 2
+
+
+def typecheck_with_mypy(cmd_options: List[str]) -> int:
+    fscache = FileSystemCache()
+    sources, options = process_options(cmd_options, fscache=fscache)
+
+    error_messages = []
+
+    def flush_errors(new_messages: List[str], serious: bool) -> None:
+        error_messages.extend(new_messages)
+        f = sys.stderr if serious else sys.stdout
+        try:
+            for msg in new_messages:
+                f.write(msg + '\n')
+            f.flush()
+        except BrokenPipeError:
+            sys.exit(ReturnCodes.FATAL_ERROR)
+
+    try:
+        build.build(sources, options,
+                    flush_errors=flush_errors, fscache=fscache)
+    except SystemExit as sysexit:
+        return sysexit.code
+
+    if error_messages:
+        return ReturnCodes.FAIL
+    return ReturnCodes.SUCCESS
 
 
 class TestItem(pytest.Item):
@@ -67,6 +115,7 @@ class TestItem(pytest.Item):
             if not self.source_code:
                 return
             test_specific_modules = make_files(tmpdir_path, self.files)
+            # TODO: add check for python >= 3.6
 
             with utils.temp_environ(), utils.temp_path():
                 for key, val in (self.custom_environment or {}).items():
@@ -78,16 +127,18 @@ class TestItem(pytest.Item):
                 main_fpath.write_text(self.source_code)
                 mypy_cmd_options.append(str(main_fpath))
 
-                stdout, stderr, returncode = mypy_api.run(mypy_cmd_options)
+                with capturer.CaptureOutput() as captured_std_streams:
+                    return_code = typecheck_with_mypy(mypy_cmd_options)
+
+                if return_code == ReturnCodes.FATAL_ERROR:
+                    raise TypecheckAssertionError(error_message='Critical error occurred')
+
                 output_lines = []
-                for line in (stdout + stderr).splitlines():
-                    if ':' not in line:
-                        continue
-                    out_fpath, res_line = line.split(':', 1)
-                    line = os.path.relpath(out_fpath, start=tmpdir_path) + ':' + res_line
-                    output_lines.append(line.strip().replace('.py', ''))
+                for line in captured_std_streams.get_lines():
+                    output_lines.append(replace_fpath_with_module_name(line, rootdir=tmpdir_path))
 
                 for module in test_specific_modules:
+                    # remove created modules from sys.modules, so name could be reused
                     parts = module.split('.')
                     for i in range(len(parts)):
                         parent_module = '.'.join(parts[:i + 1])
