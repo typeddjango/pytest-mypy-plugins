@@ -1,6 +1,7 @@
-import dataclasses
 import re
 from typing import List, Dict, Any, Iterator
+
+import dataclasses
 
 from pytest_mypy.utils import extract_errors_from_comments
 

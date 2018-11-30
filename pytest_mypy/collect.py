@@ -31,4 +31,3 @@ def pytest_addoption(parser: Parser) -> None:
                     help='Base directory for tests to use')
     group.addoption('--mypy-ini-file', type=str,
                     help='Which .ini file to use as a default config for tests')
-

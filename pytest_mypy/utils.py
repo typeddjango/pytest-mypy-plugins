@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import List, Callable, Optional, Tuple
 
-import pytest  # type: ignore  # no pytest in typeshed
 from decorator import contextmanager
 
 

@@ -10,7 +10,6 @@ from _pytest._code.code import ReprFileLocation, ReprEntry, ExceptionInfo
 from _pytest.config import Config
 from decorator import contextmanager
 from mypy import build
-from mypy.errors import CompileError
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 
