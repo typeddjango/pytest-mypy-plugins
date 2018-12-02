@@ -16,3 +16,27 @@ reveal_type('one')
 [out]
 main:1: error: Revealed type is 'builtins.int'
 main:2: error: Revealed type is 'builtins.str'
+
+[CASE other_file_in_the_same_directory]
+from myfile import Class
+
+[file myfile.py]
+class Class:
+    def method(self) -> None:
+        reveal_type(1)  # E: Revealed type is 'builtins.int'
+
+[CASE other_file_in_package]
+from mypackage.mod import Class
+
+[file mypackage/__init__.py]
+[file mypackage/mod.py]
+class Class:
+    def method(self) -> None:
+        reveal_type(1)  # E: Revealed type is 'builtins.int'
+
+[CASE output_in_the_wrong_order]
+reveal_type(1)
+reveal_type('2')
+[out]
+main:2: error: Revealed type is 'builtins.str'
+main:1: error: Revealed type is 'builtins.int'

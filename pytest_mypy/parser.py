@@ -1,3 +1,4 @@
+import itertools
 import re
 from typing import List, Dict, Any, Iterator
 
@@ -46,7 +47,6 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
         if not sections[current_section] and not line:
             # skip first line, if section is empty
             continue
-
         if line.startswith('[') and line.endswith(']') and not line.startswith('[['):
             current_section = line[1:-1]
             sections[current_section] = []
@@ -54,7 +54,6 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
         if line.startswith('[['):
             sections[current_section].append(line[1:])
             continue
-
         sections[current_section].append(line)
 
     custom_environment = {}
@@ -80,12 +79,17 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
             if not filename:
                 raise ValueError('[file] directive has to be in form of [file FILEPATH]')
 
-            files_to_create[filename] = '\n'.join(content_lines)
+            files_to_create[filename] = content_lines
             continue
 
     # parse comments output from source code
     source_lines = sections.get('main', [])
-    output_from_comments = extract_errors_from_comments(source_lines, 'main')
+    output_from_comments = []
+    for filename, input_lines in itertools.chain([('main.py', source_lines)],
+                                                 files_to_create.items()):
+        file_output = extract_errors_from_comments(filename, input_lines)
+        output_from_comments.extend(file_output)
+
     output = output_from_comments + sections.get('out', [])
 
     chunk = ParsedTestChunk(name=raw_chunk.name,
@@ -93,5 +97,5 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
                             source_code='\n'.join(source_lines),
                             output_lines=output,
                             custom_environment=custom_environment,
-                            files_to_create=files_to_create)
+                            files_to_create={fname: '\n'.join(lines) for fname, lines in files_to_create.items()})
     return chunk

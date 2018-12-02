@@ -31,3 +31,5 @@ def pytest_addoption(parser: Parser) -> None:
                     help='Base directory for tests to use')
     group.addoption('--mypy-ini-file', type=str,
                     help='Which .ini file to use as a default config for tests')
+    group.addoption('--mypy-no-cache', action='store_true',
+                    help='Disable mypy caching for files created in tests')

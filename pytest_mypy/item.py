@@ -2,7 +2,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Dict, Iterator
+from typing import TYPE_CHECKING, List, Dict, Iterator, Optional, Set
 
 import capturer
 import pytest
@@ -12,6 +12,7 @@ from decorator import contextmanager
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
+from mypy.options import Options
 
 from pytest_mypy import utils
 from pytest_mypy.utils import fname_to_module, assert_string_arrays_equal, TypecheckAssertionError
@@ -56,7 +57,19 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def typecheck_with_mypy(cmd_options: List[str]) -> int:
+def get_module_files_in_cache(cache_dir: Path, module_qualname: str) -> List[Path]:
+    base_path = cache_dir.joinpath(*module_qualname.split('.'))
+    return [base_path.with_suffix('.data.json'), base_path.with_suffix('.meta.json')]
+
+
+def get_cache_dir(options: Options) -> Path:
+    python_version_dir = '.'.join([str(part) for part in options.python_version])
+    return Path(os.getcwd()) / options.cache_dir / python_version_dir
+
+
+def typecheck_with_mypy(cmd_options: List[str],
+                        *,
+                        disable_cache_for: Optional[Set[str]] = None) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -77,6 +90,14 @@ def typecheck_with_mypy(cmd_options: List[str]) -> int:
                     flush_errors=flush_errors, fscache=fscache)
     except SystemExit as sysexit:
         return sysexit.code
+    finally:
+        fscache.flush()
+        if disable_cache_for:
+            cache_dir = get_cache_dir(options)
+            for module_qualname in disable_cache_for:
+                for cache_file in get_module_files_in_cache(cache_dir, module_qualname):
+                    if cache_file.exists():
+                        cache_file.unlink()
 
     if error_messages:
         return ReturnCodes.FAIL
@@ -100,6 +121,7 @@ class TestItem(pytest.Item):
         self.expected_output_lines = output_lines
         self.root_directory = config.option.mypy_testing_base
         self.base_ini_fpath = config.option.mypy_ini_file
+        self.disable_cache_for_modules = config.option.mypy_no_cache
         self.files = files
         self.custom_environment = custom_environment
 
@@ -127,7 +149,11 @@ class TestItem(pytest.Item):
                 mypy_cmd_options.append(str(main_fpath))
 
                 with capturer.CaptureOutput() as captured_std_streams:
-                    return_code = typecheck_with_mypy(mypy_cmd_options)
+                    disable_cache_for = None
+                    if self.disable_cache_for_modules:
+                        disable_cache_for = set(test_specific_modules + ['main'])
+                    return_code = typecheck_with_mypy(mypy_cmd_options,
+                                                      disable_cache_for=disable_cache_for)
 
                 if return_code == ReturnCodes.FATAL_ERROR:
                     raise TypecheckAssertionError(error_message='Critical error occurred')

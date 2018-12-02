@@ -56,23 +56,18 @@ class TypecheckAssertionError(AssertionError):
         return self.error_message
 
 
-def _clean_up(a: List[str]) -> List[str]:
+def cleanup_lines(lines: List[str]) -> List[str]:
     """Remove common directory prefix from all strings in a.
 
     This uses a naive string replace; it seems to work well enough. Also
     remove trailing carriage returns.
     """
-    res = []
-    for s in a:
-        prefix = os.sep
-        ss = s
-        for p in prefix, prefix.replace(os.sep, '/'):
-            if p != '/' and p != '//' and p != '\\' and p != '\\\\':
-                ss = ss.replace(p, '')
+    cleaned_lines = []
+    for line in lines:
         # Ignore spaces at end of line.
-        ss = re.sub(' +$', '', ss)
-        res.append(re.sub('\\r$', '', ss))
-    return res
+        line = re.sub(' +$', '', line)
+        cleaned_lines.append(re.sub('\\r$', '', line))
+    return cleaned_lines
 
 
 def _num_skipped_prefix_lines(a1: List[str], a2: List[str]) -> int:
@@ -150,13 +145,23 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
     # sys.stderr.write('\n')
 
 
+def remove_empty_lines(lines: List[str]) -> List[str]:
+    filtered_lines = []
+    for line in lines:
+        if line:
+            filtered_lines.append(line)
+    return filtered_lines
+
+
 def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
     """
+    expected = remove_empty_lines(expected)
+    actual = remove_empty_lines(actual)
 
-    actual = _clean_up(actual)
+    actual = cleanup_lines(actual)
     error_message = ''
 
     if set(actual) != set(expected):
@@ -236,12 +241,13 @@ def build_output_line(fname: str, lnum: int, severity: str, message: str, col=No
         return f'{fname}:{lnum + 1}:{col}: {severity}: {message}'
 
 
-def extract_errors_from_comments(input_lines: List[str], fname: str) -> List[str]:
+def extract_errors_from_comments(fname: str, input_lines: List[str]) -> List[str]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
     The result is lines like 'fnam:line: error: message'.
     """
+    fname = fname.replace('.py', '')
     output_lines = []
     for lnum, line in enumerate(input_lines):
         # The first in the split things isn't a comment
