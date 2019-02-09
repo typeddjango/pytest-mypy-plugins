@@ -1,8 +1,10 @@
 import itertools
 import re
-from typing import List, Dict, Any, Iterator
+import tempfile
+from typing import Any, Dict, Iterator, List, Optional
 
 import dataclasses
+from _pytest.config import Config
 
 from pytest_mypy.utils import extract_errors_from_comments
 
@@ -22,6 +24,7 @@ class ParsedTestChunk:
     output_lines: List[str]
     custom_environment: Dict[str, Any]
     files_to_create: Dict[str, str]
+    temp_dir: tempfile.TemporaryDirectory
 
 
 TEST_CASES_SEPARATOR = re.compile(r'^\[(?:case|CASE) ([a-zA-Z0-9_]+)\][ \t]*$\n',
@@ -40,7 +43,18 @@ def split_test_chunks(testfile_text: str) -> Iterator[RawTestChunk]:
         current_lineno += contents.count('\n') + 1
 
 
-def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
+TEMP_DIR_PREFIX = 'mypy-pytest-'
+
+
+def interpolate_environment_variables(environment: Dict[str, str],
+                                      temp_directory: str) -> Dict[str, str]:
+    interpolated: Dict[str, str] = {}
+    for varname in environment:
+        interpolated[varname] = environment[varname].replace('${MYPY_CWD}', str(temp_directory))
+    return interpolated
+
+
+def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = None) -> ParsedTestChunk:
     sections: Dict[str, List[str]] = {'main': []}
     current_section = 'main'
     for i, line in enumerate(raw_chunk.contents.split('\n')):
@@ -68,6 +82,7 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
 
             _, _, variables = section.partition(' ')
             if variables:
+                # replace template variables
                 for defn in variables.split(';'):
                     name, value = defn.split('=', 1)
                     custom_environment[name] = value
@@ -92,10 +107,18 @@ def parse_test_chunk(raw_chunk: RawTestChunk) -> ParsedTestChunk:
 
     output = output_from_comments + sections.get('out', [])
 
+    temp_base_dir = None
+    if pytest_config is not None and hasattr(pytest_config, 'root_directory'):
+        temp_base_dir = pytest_config.root_directory
+
+    temp_dir = tempfile.TemporaryDirectory(prefix=TEMP_DIR_PREFIX, dir=temp_base_dir)
+    interpolated_environment = interpolate_environment_variables(custom_environment,
+                                                                 temp_directory=temp_dir.name)
     chunk = ParsedTestChunk(name=raw_chunk.name,
                             starting_lineno=raw_chunk.starting_lineno,
                             source_code='\n'.join(source_lines),
                             output_lines=output,
-                            custom_environment=custom_environment,
-                            files_to_create={fname: '\n'.join(lines) for fname, lines in files_to_create.items()})
+                            custom_environment=interpolated_environment,
+                            files_to_create={fname: '\n'.join(lines) for fname, lines in files_to_create.items()},
+                            temp_dir=temp_dir)
     return chunk

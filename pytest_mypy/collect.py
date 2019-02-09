@@ -2,14 +2,14 @@ import pytest
 from _pytest.config.argparsing import Parser
 
 from pytest_mypy.item import TestItem
-from pytest_mypy.parser import split_test_chunks, parse_test_chunk
+from pytest_mypy.parser import parse_test_chunk, split_test_chunks
 
 
 class DotTestFile(pytest.File):
     def collect(self):
         file_contents = self.fspath.read_text('utf8')
         for raw_chunk in split_test_chunks(file_contents):
-            chunk = parse_test_chunk(raw_chunk)
+            chunk = parse_test_chunk(raw_chunk, pytest_config=self.config)
             yield TestItem(name=chunk.name,
                            collector=self,
                            config=self.config,
@@ -17,7 +17,8 @@ class DotTestFile(pytest.File):
                            starting_lineno=chunk.starting_lineno,
                            output_lines=chunk.output_lines,
                            files=chunk.files_to_create,
-                           custom_environment=chunk.custom_environment)
+                           custom_environment=chunk.custom_environment,
+                           temp_dir=chunk.temp_dir)
 
 
 def pytest_collect_file(path, parent):

@@ -2,20 +2,19 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Dict, Iterator, Optional, Set
+from typing import Dict, List, Optional, Set, TYPE_CHECKING
 
 import capturer
 import pytest
-from _pytest._code.code import ReprFileLocation, ReprEntry, ExceptionInfo
+from _pytest._code.code import ExceptionInfo, ReprEntry, ReprFileLocation
 from _pytest.config import Config
-from decorator import contextmanager
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 from mypy.options import Options
 
 from pytest_mypy import utils
-from pytest_mypy.utils import fname_to_module, assert_string_arrays_equal, TypecheckAssertionError
+from pytest_mypy.utils import TypecheckAssertionError, assert_string_arrays_equal, fname_to_module
 
 if TYPE_CHECKING:
     from pytest_mypy.collect import DotTestFile
@@ -113,7 +112,8 @@ class TestItem(pytest.Item):
                  starting_lineno: int,
                  output_lines: List[str],
                  files: Dict[str, str],
-                 custom_environment: Dict[str, str]) -> None:
+                 custom_environment: Dict[str, str],
+                 temp_dir: tempfile.TemporaryDirectory) -> None:
         super().__init__(name, collector, config)
         self.name = name
         self.source_code = source_code
@@ -124,15 +124,13 @@ class TestItem(pytest.Item):
         self.disable_cache_for_modules = config.option.mypy_no_cache
         self.files = files
         self.custom_environment = custom_environment
-
-    @contextmanager
-    def temp_directory(self) -> Iterator[Path]:
-        with tempfile.TemporaryDirectory(prefix='mypy-pytest-',
-                                         dir=self.root_directory) as tmpdir_name:
-            yield Path(self.root_directory) / tmpdir_name
+        self.temp_dir = temp_dir
 
     def runtest(self):
-        with self.temp_directory() as tmpdir_path:
+        tmpdir_path = Path(self.temp_dir.name)
+        assert tmpdir_path.exists()
+
+        try:
             if not self.source_code:
                 return
             test_specific_modules = make_files(tmpdir_path, self.files)
@@ -172,6 +170,8 @@ class TestItem(pytest.Item):
 
                 assert_string_arrays_equal(expected=self.expected_output_lines,
                                            actual=output_lines)
+        finally:
+            self.temp_dir.cleanup()
 
     def prepare_mypy_cmd_options(self) -> List[str]:
         mypy_cmd_options = [

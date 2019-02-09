@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pytest_mypy.parser import RawTestChunk, parse_test_chunk, ParsedTestChunk
+from pytest_mypy.parser import ParsedTestChunk, RawTestChunk, parse_test_chunk
 
 TEST_FILES_ROOT = Path(__file__).parent / 'files' / 'parse'
 
@@ -34,6 +34,13 @@ def test_source_code_has_env():
     chunk = _parse_file_content(TEST_FILES_ROOT / 'env.txt')
     assert chunk.custom_environment == {'DJANGO_SETTINGS_MODULE': 'mysettings',
                                         'PATH': '/root/path'}
+
+
+def test_interpolate_cwd_variable():
+    contents = (TEST_FILES_ROOT / 'variables.txt').read_text()
+    raw_chunk = RawTestChunk(name='myTest', starting_lineno=1, contents=contents)
+    chunk = parse_test_chunk(raw_chunk)
+    assert chunk.custom_environment['CONFIG_FILE'] == chunk.temp_dir.name + '/mypy.ini'
 
 
 def test_add_files():
