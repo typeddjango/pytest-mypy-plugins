@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import List, Callable, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from decorator import contextmanager
 
@@ -217,8 +217,8 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
         error_message += '\n'
 
         if 0 <= first_diff < len(actual) and (
-                len(expected[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
-                or len(actual[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT):
+            len(expected[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+            or len(actual[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT):
             # Display message that helps visualize the differences between two
             # long lines.
             error_message = _add_aligned_message(expected[first_diff], actual[first_diff],
@@ -276,3 +276,18 @@ def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[s
         if f'def {attr.__name__}' in no_space_line:
             return lnum, lines[lnum + 1:]
     raise ValueError(f'No line "def {attr.__name__}" found')
+
+
+@contextmanager
+def cd(path):
+    """Context manager to temporarily change working directories"""
+    if not path:
+        return
+    prev_cwd = Path.cwd().as_posix()
+    if isinstance(path, Path):
+        path = path.as_posix()
+    os.chdir(str(path))
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)

@@ -120,7 +120,11 @@ class TestItem(pytest.Item):
         self.starting_lineno = starting_lineno
         self.expected_output_lines = output_lines
         self.root_directory = config.option.mypy_testing_base
-        self.base_ini_fpath = config.option.mypy_ini_file
+        if config.option.mypy_ini_file:
+            mypy_ini_file_abspath = os.path.abspath(config.option.mypy_ini_file)
+        else:
+            mypy_ini_file_abspath = None
+        self.base_ini_fpath = mypy_ini_file_abspath
         self.disable_cache_for_modules = config.option.mypy_no_cache
         self.files = files
         self.custom_environment = custom_environment
@@ -136,7 +140,7 @@ class TestItem(pytest.Item):
             test_specific_modules = make_files(tmpdir_path, self.files)
             # TODO: add check for python >= 3.6
 
-            with utils.temp_environ(), utils.temp_path():
+            with utils.temp_environ(), utils.temp_path(), utils.cd(tmpdir_path):
                 for key, val in (self.custom_environment or {}).items():
                     os.environ[key] = val
                 sys.path.insert(0, str(tmpdir_path))
