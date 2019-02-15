@@ -1,0 +1,2 @@
+print('hello, world')
+[mypy_options --strict-optional]

@@ -113,7 +113,8 @@ class TestItem(pytest.Item):
                  output_lines: List[str],
                  files: Dict[str, str],
                  custom_environment: Dict[str, str],
-                 temp_dir: tempfile.TemporaryDirectory) -> None:
+                 temp_dir: tempfile.TemporaryDirectory,
+                 mypy_options: List[str]) -> None:
         super().__init__(name, collector, config)
         self.name = name
         self.source_code = source_code
@@ -129,6 +130,7 @@ class TestItem(pytest.Item):
         self.files = files
         self.custom_environment = custom_environment
         self.temp_dir = temp_dir
+        self.mypy_options = mypy_options
 
     def runtest(self):
         tmpdir_path = Path(self.temp_dir.name)
@@ -186,6 +188,10 @@ class TestItem(pytest.Item):
         mypy_cmd_options.append(f'--python-version={python_version}')
         if self.base_ini_fpath:
             mypy_cmd_options.append(f'--config-file={self.base_ini_fpath}')
+
+        if self.mypy_options:
+            mypy_cmd_options.extend(self.mypy_options)
+
         return mypy_cmd_options
 
     def repr_failure(self, excinfo: ExceptionInfo) -> str:

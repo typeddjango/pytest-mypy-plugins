@@ -67,3 +67,8 @@ def test_revealed_type_comments():
         "main:5: error: Revealed type is 'builtins.int'",
         "main:6: error: Revealed type is 'builtins.str'"
     ]
+
+
+def test_parse_mypy_options():
+    chunk = _parse_file_content(TEST_FILES_ROOT / 'custom_mypy_options.txt')
+    assert chunk.custom_mypy_options == ['--strict-optional']

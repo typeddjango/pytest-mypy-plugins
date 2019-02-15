@@ -18,7 +18,8 @@ class DotTestFile(pytest.File):
                            output_lines=chunk.output_lines,
                            files=chunk.files_to_create,
                            custom_environment=chunk.custom_environment,
-                           temp_dir=chunk.temp_dir)
+                           temp_dir=chunk.temp_dir,
+                           mypy_options=chunk.custom_mypy_options)
 
 
 def pytest_collect_file(path, parent):

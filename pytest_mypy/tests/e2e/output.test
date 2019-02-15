@@ -40,3 +40,9 @@ reveal_type('2')
 [out]
 main:2: error: Revealed type is 'builtins.str'
 main:1: error: Revealed type is 'builtins.int'
+
+[CASE no_strict_optional]
+from typing import Optional, List
+mylist: Optional[List[str]] = []
+mylist.append('hello')
+[mypy_options --no-strict-optional]

@@ -25,6 +25,7 @@ class ParsedTestChunk:
     custom_environment: Dict[str, Any]
     files_to_create: Dict[str, str]
     temp_dir: tempfile.TemporaryDirectory
+    custom_mypy_options: List[str]
 
 
 TEST_CASES_SEPARATOR = re.compile(r'^\[(?:case|CASE) ([a-zA-Z0-9_]+)\][ \t]*$\n',
@@ -72,6 +73,7 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
 
     custom_environment = {}
     files_to_create = {}
+    mypy_options = []
     for section in sections:
         if section in {'main', 'out'}:
             continue
@@ -97,6 +99,11 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
             files_to_create[filename] = content_lines
             continue
 
+        if section.startswith('mypy_options'):
+            _, _, options_line = section.partition(' ')
+            mypy_options = options_line.split(' ')
+            continue
+
     # parse comments output from source code
     source_lines = sections.get('main', [])
     output_from_comments = []
@@ -120,5 +127,6 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
                             output_lines=output,
                             custom_environment=interpolated_environment,
                             files_to_create={fname: '\n'.join(lines) for fname, lines in files_to_create.items()},
-                            temp_dir=temp_dir)
+                            temp_dir=temp_dir,
+                            custom_mypy_options=mypy_options)
     return chunk
