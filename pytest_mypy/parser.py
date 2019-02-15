@@ -71,9 +71,9 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
             continue
         sections[current_section].append(line)
 
-    custom_environment = {}
-    files_to_create = {}
-    mypy_options = []
+    custom_environment: Dict[str, str] = {}
+    files_to_create: Dict[str, List[str]] = {}
+    mypy_options: List[str] = []
     for section in sections:
         if section in {'main', 'out'}:
             continue
@@ -105,8 +105,8 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
             continue
 
     # parse comments output from source code
-    source_lines = sections.get('main', [])
-    output_from_comments = []
+    source_lines: List[str] = sections.get('main', [])
+    output_from_comments: List[str] = []
     for filename, input_lines in itertools.chain([('main.py', source_lines)],
                                                  files_to_create.items()):
         file_output = extract_errors_from_comments(filename, input_lines)
