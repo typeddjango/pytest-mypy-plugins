@@ -1,7 +1,19 @@
+import sys
+
 from setuptools import setup
 
 with open('README.md', 'r') as f:
     readme = f.read()
+
+dependencies = [
+    'pytest',
+    'mypy',
+    'decorator',
+    'capturer'
+]
+if sys.version_info[:2] < (3, 7):
+    # dataclasses port for 3.6
+    dependencies += ['dataclasses']
 
 setup(
     name='pytest-mypy-plugins',
@@ -20,13 +32,7 @@ setup(
             'pytest-mypy-plugins = pytest_mypy.collect'
         ]
     },
-    install_requires=[
-        'pytest',
-        'mypy',
-        'decorator',
-        'dataclasses',
-        'capturer'
-    ],
+    install_requires=dependencies,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: MIT License',
