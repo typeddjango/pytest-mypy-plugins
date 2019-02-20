@@ -17,7 +17,7 @@ if sys.version_info[:2] < (3, 7):
 
 setup(
     name='pytest-mypy-plugins',
-    version='0.1.1',
+    version='0.2.0',
     description='pytest plugin for writing tests for mypy plugins',
     long_description=readme,
     long_description_content_type='text/markdown',
