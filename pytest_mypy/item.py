@@ -1,6 +1,8 @@
 import os
+import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set, TYPE_CHECKING
 
@@ -87,6 +89,7 @@ def typecheck_with_mypy(cmd_options: List[str],
     try:
         build.build(sources, options,
                     flush_errors=flush_errors, fscache=fscache)
+
     except SystemExit as sysexit:
         return sysexit.code
     finally:
@@ -180,10 +183,15 @@ class TestItem(pytest.Item):
             self.temp_dir.cleanup()
 
     def prepare_mypy_cmd_options(self) -> List[str]:
+        incremental_cache_dir = os.path.join(self.root_directory, '.mypy_cache')
+
         mypy_cmd_options = [
             '--show-traceback',
-            '--no-silence-site-packages'
+            '--no-silence-site-packages',
+            '--cache-dir',
+            incremental_cache_dir
         ]
+
         python_version = '.'.join([str(part) for part in sys.version_info[:2]])
         mypy_cmd_options.append(f'--python-version={python_version}')
         if self.base_ini_fpath:
