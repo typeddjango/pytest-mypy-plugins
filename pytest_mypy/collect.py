@@ -19,7 +19,8 @@ class DotTestFile(pytest.File):
                            files=chunk.files_to_create,
                            custom_environment=chunk.custom_environment,
                            temp_dir=chunk.temp_dir,
-                           mypy_options=chunk.custom_mypy_options)
+                           mypy_options=chunk.custom_mypy_options,
+                           disable_cache=chunk.disable_cache)
 
 
 def pytest_collect_file(path, parent):
@@ -33,5 +34,3 @@ def pytest_addoption(parser: Parser) -> None:
                     help='Base directory for tests to use')
     group.addoption('--mypy-ini-file', type=str,
                     help='Which .ini file to use as a default config for tests')
-    group.addoption('--mypy-no-cache', action='store_true',
-                    help='Disable mypy caching for files created in tests')

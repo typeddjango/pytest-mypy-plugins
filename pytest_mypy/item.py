@@ -1,10 +1,8 @@
 import os
-import shutil
 import sys
 import tempfile
-import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 import capturer
 import pytest
@@ -13,7 +11,6 @@ from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
-from mypy.options import Options
 
 from pytest_mypy import utils
 from pytest_mypy.utils import TypecheckAssertionError, assert_string_arrays_equal, fname_to_module
@@ -58,19 +55,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def get_module_files_in_cache(cache_dir: Path, module_qualname: str) -> List[Path]:
-    base_path = cache_dir.joinpath(*module_qualname.split('.'))
-    return [base_path.with_suffix('.data.json'), base_path.with_suffix('.meta.json')]
-
-
-def get_cache_dir(options: Options) -> Path:
-    python_version_dir = '.'.join([str(part) for part in options.python_version])
-    return Path(os.getcwd()) / options.cache_dir / python_version_dir
-
-
-def typecheck_with_mypy(cmd_options: List[str],
-                        *,
-                        disable_cache_for: Optional[Set[str]] = None) -> int:
+def typecheck_with_mypy(cmd_options: List[str]) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -94,12 +79,6 @@ def typecheck_with_mypy(cmd_options: List[str],
         return sysexit.code
     finally:
         fscache.flush()
-        if disable_cache_for:
-            cache_dir = get_cache_dir(options)
-            for module_qualname in disable_cache_for:
-                for cache_file in get_module_files_in_cache(cache_dir, module_qualname):
-                    if cache_file.exists():
-                        cache_file.unlink()
 
     if error_messages:
         return ReturnCodes.FAIL
@@ -117,7 +96,8 @@ class TestItem(pytest.Item):
                  files: Dict[str, str],
                  custom_environment: Dict[str, str],
                  temp_dir: tempfile.TemporaryDirectory,
-                 mypy_options: List[str]) -> None:
+                 mypy_options: List[str],
+                 disable_cache: bool = False) -> None:
         super().__init__(name, collector, config)
         self.name = name
         self.source_code = source_code
@@ -129,11 +109,11 @@ class TestItem(pytest.Item):
         else:
             mypy_ini_file_abspath = None
         self.base_ini_fpath = mypy_ini_file_abspath
-        self.disable_cache_for_modules = config.option.mypy_no_cache
         self.files = files
         self.custom_environment = custom_environment
         self.temp_dir = temp_dir
         self.mypy_options = mypy_options
+        self.disable_cache = disable_cache
 
     def runtest(self):
         tmpdir_path = Path(self.temp_dir.name)
@@ -156,11 +136,7 @@ class TestItem(pytest.Item):
                 mypy_cmd_options.append(str(main_fpath))
 
                 with capturer.CaptureOutput() as captured_std_streams:
-                    disable_cache_for = None
-                    if self.disable_cache_for_modules:
-                        disable_cache_for = set(test_specific_modules + ['main'])
-                    return_code = typecheck_with_mypy(mypy_cmd_options,
-                                                      disable_cache_for=disable_cache_for)
+                    return_code = typecheck_with_mypy(mypy_cmd_options)
 
                 if return_code == ReturnCodes.FATAL_ERROR:
                     raise TypecheckAssertionError(error_message='Critical error occurred')
@@ -188,9 +164,12 @@ class TestItem(pytest.Item):
         mypy_cmd_options = [
             '--show-traceback',
             '--no-silence-site-packages',
-            '--cache-dir',
-            incremental_cache_dir
         ]
+        if not self.disable_cache:
+            mypy_cmd_options.extend([
+                '--cache-dir',
+                incremental_cache_dir
+            ])
 
         python_version = '.'.join([str(part) for part in sys.version_info[:2]])
         mypy_cmd_options.append(f'--python-version={python_version}')
