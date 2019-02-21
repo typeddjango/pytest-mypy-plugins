@@ -37,3 +37,15 @@ class MyClass:
 def func(arg: str): pass
 """.lstrip()
     assert cases[0].contents == code
+
+
+def test_end_testcase_with_slash_case():
+    text = (TEST_FILES_ROOT / 'end_case.txt').read_text()
+    cases = list(split_test_chunks(text))
+
+    assert cases[0].name == 'my_test'
+    assert cases[0].contents.strip() == "print('hello, world')"
+
+    assert cases[1].name == 'my_test_2'
+    assert cases[1].contents.strip() == "print('hello, world')"
+

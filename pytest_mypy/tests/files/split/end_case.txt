@@ -1,0 +1,7 @@
+[case my_test]
+print('hello, world')
+[/case]
+
+[CASE my_test_2]
+print('hello, world')
+[/CASE]

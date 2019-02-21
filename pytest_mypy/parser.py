@@ -31,6 +31,8 @@ class ParsedTestChunk:
 
 TEST_CASES_SEPARATOR = re.compile(r'^\[(?:case|CASE) ([a-zA-Z0-9_]+)\][ \t]*$\n',
                                   flags=re.MULTILINE)
+END_CASE_SEPARATOR = re.compile(r'^\[/(?:case|CASE)\][ \t]*$', flags=re.MULTILINE)
+ONE_LINE_SECTIONS = ('env', 'disable_cache', 'mypy_options')
 
 
 def split_test_chunks(testfile_text: str) -> Iterator[RawTestChunk]:
@@ -39,6 +41,8 @@ def split_test_chunks(testfile_text: str) -> Iterator[RawTestChunk]:
     current_lineno = matches[0].count('\n') + 1
     for i in range(1, len(matches), 2):
         name, contents = matches[i:i + 2]
+        contents = re.sub(END_CASE_SEPARATOR, '', contents)
+
         yield RawTestChunk(name=name,
                            starting_lineno=current_lineno,
                            contents=contents)
@@ -64,8 +68,10 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
             # skip first line, if section is empty
             continue
         if line.startswith('[') and line.endswith(']') and not line.startswith('[['):
-            current_section = line[1:-1]
-            sections[current_section] = []
+            section = line[1:-1]
+            sections[section] = []
+            if not section.startswith(ONE_LINE_SECTIONS):
+                current_section = section
             continue
         if line.startswith('[['):
             sections[current_section].append(line[1:])
@@ -108,6 +114,7 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
 
         if section == 'disable_cache':
             disable_cache = True
+
     # parse comments output from source code
     source_lines: List[str] = sections.get('main', [])
     output_from_comments: List[str] = []
@@ -116,7 +123,8 @@ def parse_test_chunk(raw_chunk: RawTestChunk, pytest_config: Optional[Config] = 
         file_output = extract_errors_from_comments(filename, input_lines)
         output_from_comments.extend(file_output)
 
-    output = output_from_comments + sections.get('out', [])
+    output = output_from_comments + [out_line for out_line in sections.get('out', [])
+                                     if out_line != '']
 
     temp_base_dir = None
     if pytest_config is not None and hasattr(pytest_config, 'root_directory'):

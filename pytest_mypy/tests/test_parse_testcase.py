@@ -72,3 +72,11 @@ def test_revealed_type_comments():
 def test_parse_mypy_options():
     chunk = _parse_file_content(TEST_FILES_ROOT / 'custom_mypy_options.txt')
     assert chunk.custom_mypy_options == ['--strict-optional']
+
+
+def test_options_at_the_beginning_of_the_test():
+    chunk = _parse_file_content(TEST_FILES_ROOT / 'options_at_the_beginning.txt')
+    assert chunk.disable_cache == True
+    assert chunk.custom_environment == {'DJANGO_SETTINGS_MODULE': 'settings'}
+    assert chunk.source_code == "print('hello, world')"
+    assert chunk.output_lines == ['hello, world']
