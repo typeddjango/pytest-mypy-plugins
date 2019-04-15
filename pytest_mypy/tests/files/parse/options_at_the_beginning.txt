@@ -1,5 +1,0 @@
-[disable_cache]
-[env DJANGO_SETTINGS_MODULE=settings]
-print('hello, world')
-[out]
-hello, world

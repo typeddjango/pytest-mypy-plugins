@@ -1,2 +1,0 @@
-[case testHelloWorld]
-print("hello, world")

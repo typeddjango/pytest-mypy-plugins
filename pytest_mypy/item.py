@@ -2,21 +2,20 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, TYPE_CHECKING
+from typing import List, Dict, Any
 
 import capturer
 import pytest
-from _pytest._code.code import ExceptionInfo, ReprEntry, ReprFileLocation
+from _pytest._code import ExceptionInfo
+from _pytest._code.code import ReprFileLocation, ReprEntry
 from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 
 from pytest_mypy import utils
+from pytest_mypy.collect import File, YamlTestFile
 from pytest_mypy.utils import TypecheckAssertionError, assert_string_arrays_equal, fname_to_module
-
-if TYPE_CHECKING:
-    from pytest_mypy.collect import DotTestFile
 
 
 class TraceLastReprEntry(ReprEntry):
@@ -82,58 +81,72 @@ def typecheck_with_mypy(cmd_options: List[str]) -> int:
 
     if error_messages:
         return ReturnCodes.FAIL
+
     return ReturnCodes.SUCCESS
 
 
 class TestItem(pytest.Item):
     def __init__(self,
                  name: str,
-                 collector: 'DotTestFile',
+                 collector: YamlTestFile,
                  config: Config,
-                 source_code: str,
+                 files: List[File],
                  starting_lineno: int,
-                 output_lines: List[str],
-                 files: Dict[str, str],
-                 custom_environment: Dict[str, str],
-                 temp_dir: tempfile.TemporaryDirectory,
-                 mypy_options: List[str],
-                 disable_cache: bool = False) -> None:
+                 expected_output_lines: List[str],
+                 extra_environment_variables: Dict[str, Any],
+                 disable_cache: bool) -> None:
         super().__init__(name, collector, config)
-        self.name = name
-        self.source_code = source_code
+        self.files = files
+        self.extra_environment_variables = extra_environment_variables
+        self.disable_cache = disable_cache
+        self.expected_output_lines = expected_output_lines
         self.starting_lineno = starting_lineno
-        self.expected_output_lines = output_lines
+
+        # config parameters
         self.root_directory = config.option.mypy_testing_base
         if config.option.mypy_ini_file:
-            mypy_ini_file_abspath = os.path.abspath(config.option.mypy_ini_file)
+            self.base_ini_fpath = os.path.abspath(config.option.mypy_ini_file)
         else:
-            mypy_ini_file_abspath = None
-        self.base_ini_fpath = mypy_ini_file_abspath
-        self.files = files
-        self.custom_environment = custom_environment
-        self.temp_dir = temp_dir
-        self.mypy_options = mypy_options
-        self.disable_cache = disable_cache
+            self.base_ini_fpath = None
+
+    def make_test_files_in_current_directory(self) -> None:
+        """ Returns path to the main file of the test"""
+        current_directory = Path.cwd()
+        for file in self.files:
+            fpath = current_directory / file.path
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            fpath.write_text(file.content)
 
     def runtest(self):
-        tmpdir_path = Path(self.temp_dir.name)
-        assert tmpdir_path.exists()
+        # test_execution_dirpath = Path(self.temp_dir.name)
+        # assert test_execution_dirpath.exists()
 
         try:
-            if not self.source_code:
-                return
-            test_specific_modules = make_files(tmpdir_path, self.files)
-            # TODO: add check for python >= 3.6
+            # if not self.source_code:
+            #     return
+            # test_specific_modules = make_files(test_execution_dirpath, self.files)
+            temp_dir = tempfile.TemporaryDirectory(prefix='pytest-mypy-', dir=self.root_directory)
+            execution_path = Path(temp_dir.name)
+            assert execution_path.exists()
 
-            with utils.temp_environ(), utils.temp_path(), utils.cd(tmpdir_path):
-                for key, val in (self.custom_environment or {}).items():
+            with utils.temp_environ(), utils.temp_path(), utils.cd(execution_path), utils.temp_sys_modules():
+                # add custom environment variables
+                for key, val in self.extra_environment_variables.items():
                     os.environ[key] = val
-                sys.path.insert(0, str(tmpdir_path))
 
+                # add current directory to path
+                sys.path.insert(0, str(execution_path))
+
+                # start from main.py
                 mypy_cmd_options = self.prepare_mypy_cmd_options()
-                main_fpath = tmpdir_path / 'main.py'
-                main_fpath.write_text(self.source_code)
-                mypy_cmd_options.append(str(main_fpath))
+                mypy_cmd_options.append(str(execution_path / 'main.py'))
+
+                # make files
+                self.make_test_files_in_current_directory()
+
+                # main_fpath = test_execution_dirpath / 'main.py'
+                # main_fpath.write_text(self.source_code)
+                # mypy_cmd_options.append(str(main_fpath))
 
                 with capturer.CaptureOutput() as captured_std_streams:
                     return_code = typecheck_with_mypy(mypy_cmd_options)
@@ -143,20 +156,21 @@ class TestItem(pytest.Item):
 
                 output_lines = []
                 for line in captured_std_streams.get_lines():
-                    output_lines.append(replace_fpath_with_module_name(line, rootdir=tmpdir_path))
+                    output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
+                    output_lines.append(output_line)
 
-                for module in test_specific_modules:
-                    # remove created modules from sys.modules, so name could be reused
-                    parts = module.split('.')
-                    for i in range(len(parts)):
-                        parent_module = '.'.join(parts[:i + 1])
-                        if parent_module in sys.modules:
-                            del sys.modules[parent_module]
+                # for module in test_specific_modules:
+                #     # remove created modules from sys.modules, so name could be reused
+                #     parts = module.split('.')
+                #     for i in range(len(parts)):
+                #         parent_module = '.'.join(parts[:i + 1])
+                #         if parent_module in sys.modules:
+                #             del sys.modules[parent_module]
 
                 assert_string_arrays_equal(expected=self.expected_output_lines,
                                            actual=output_lines)
         finally:
-            self.temp_dir.cleanup()
+            temp_dir.cleanup()
 
     def prepare_mypy_cmd_options(self) -> List[str]:
         incremental_cache_dir = os.path.join(self.root_directory, '.mypy_cache')
@@ -175,9 +189,6 @@ class TestItem(pytest.Item):
         mypy_cmd_options.append(f'--python-version={python_version}')
         if self.base_ini_fpath:
             mypy_cmd_options.append(f'--config-file={self.base_ini_fpath}')
-
-        if self.mypy_options:
-            mypy_cmd_options.extend(self.mypy_options)
 
         return mypy_cmd_options
 

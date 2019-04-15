@@ -1,0 +1,61 @@
+-
+    case: simplest_case
+    main: |
+        a = 1
+        b = 'hello'
+
+        class MyClass:
+            pass
+
+        reveal_type(a)  # E: Revealed type is 'builtins.int'
+        reveal_type(b)  # E: Revealed type is 'builtins.str'
+
+-
+    case: revealed_type_with_environment
+    main: |
+        a = 1
+        class MyClass:
+            def __init__(self):
+                pass
+
+        b = 'hello'
+
+        reveal_type(a)  # E: Revealed type is 'builtins.int'
+        reveal_type(b)  # E: Revealed type is 'builtins.str'
+    env:
+        - DJANGO_SETTINGS_MODULE=mysettings
+
+-
+    case: revealed_type_with_disabled_cache
+    main: |
+        a = 1
+        reveal_type(a)  # E: Revealed type is 'builtins.int'
+    disable_cache: true
+
+
+-
+    case: external_output_lines
+    main: |
+        a = 1
+        reveal_type(a)
+    out: |
+        main:2: error: Revealed type is 'builtins.int'
+
+
+-
+    case: create_files
+    main: |
+        a = 1
+        reveal_type(a)  # E: Revealed type is 'builtins.int'
+    files:
+        -
+            path: myapp/__init__.py
+        -
+            path: myapp/models.py
+            content: |
+                from django.db import models
+                class MyModel:
+                    pass
+        -
+            path: myapp/apps.py
+

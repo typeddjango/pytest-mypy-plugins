@@ -24,11 +24,20 @@ def temp_environ():
 @contextmanager
 def temp_path():
     """A context manager which allows the ability to set sys.path temporarily"""
-    path = [p for p in sys.path]
+    path = sys.path[:]
     try:
         yield
     finally:
-        sys.path = [p for p in path]
+        sys.path = path[:]
+
+
+@contextmanager
+def temp_sys_modules():
+    sys_modules = sys.modules.copy()
+    try:
+        yield
+    finally:
+        sys.modules = sys_modules.copy()
 
 
 def fname_to_module(fpath: Path, root_path: Path) -> Optional[str]:
