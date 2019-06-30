@@ -2,5 +2,5 @@ class A:
     attr = 1
     attr2 = '2'
 
-reveal_type(A.attr)  # E: Revealed type is 'builtins.int'
-reveal_type(A.attr2)  # E: Revealed type is 'builtins.str'
+reveal_type(A.attr)  # N: Revealed type is 'builtins.int'
+reveal_type(A.attr2)  # N: Revealed type is 'builtins.str'

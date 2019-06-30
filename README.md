@@ -11,7 +11,7 @@ Examples of a test case:
 class MyClass:
     def method(self) -> str:
         pass
-reveal_type(MyClass().method())  # E: Revealed type is 'builtins.str'
+reveal_type(MyClass().method())  # N: Revealed type is 'builtins.str'
 ```
 ```
 [CASE myTestCase]

@@ -64,8 +64,8 @@ def func(arg: str): pass
 def test_revealed_type_comments():
     chunk = _parse_file_content(TEST_FILES_ROOT / 'revealed_type_comments.txt')
     assert chunk.output_lines == [
-        "main:5: error: Revealed type is 'builtins.int'",
-        "main:6: error: Revealed type is 'builtins.str'"
+        "main:5: note: Revealed type is 'builtins.int'",
+        "main:6: note: Revealed type is 'builtins.str'"
     ]
 
 
