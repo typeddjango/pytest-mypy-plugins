@@ -1,18 +1,18 @@
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Tuple
 
 import capturer
 import pytest
 from _pytest._code import ExceptionInfo
-from _pytest._code.code import ReprFileLocation, ReprEntry
+from _pytest._code.code import ReprEntry, ReprFileLocation
 from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
-
 from pytest_mypy import utils
 from pytest_mypy.collect import File, YamlTestFile
 from pytest_mypy.utils import TypecheckAssertionError, assert_string_arrays_equal, fname_to_module
@@ -54,7 +54,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def typecheck_with_mypy(cmd_options: List[str]) -> int:
+def run_mypy_typechecking(cmd_options: List[str]) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -85,7 +85,7 @@ def typecheck_with_mypy(cmd_options: List[str]) -> int:
     return ReturnCodes.SUCCESS
 
 
-class TestItem(pytest.Item):
+class YamlTestItem(pytest.Item):
     def __init__(self,
                  name: str,
                  collector: YamlTestFile,
@@ -93,14 +93,17 @@ class TestItem(pytest.Item):
                  files: List[File],
                  starting_lineno: int,
                  expected_output_lines: List[str],
-                 extra_environment_variables: Dict[str, Any],
-                 disable_cache: bool) -> None:
+                 environment_variables: Dict[str, Any],
+                 disable_cache: bool,
+                 parsed_test_data: Dict[str, Any]) -> None:
         super().__init__(name, collector, config)
         self.files = files
-        self.extra_environment_variables = extra_environment_variables
+        self.environment_variables = environment_variables
         self.disable_cache = disable_cache
         self.expected_output_lines = expected_output_lines
         self.starting_lineno = starting_lineno
+        self.parsed_test_data = parsed_test_data
+        self.same_process = self.config.option.mypy_same_process
 
         # config parameters
         self.root_directory = config.option.mypy_testing_base
@@ -108,73 +111,124 @@ class TestItem(pytest.Item):
             self.base_ini_fpath = os.path.abspath(config.option.mypy_ini_file)
         else:
             self.base_ini_fpath = None
+        self.incremental_cache_dir = os.path.join(self.root_directory, '.mypy_cache')
+
+    def make_test_file(self, file: File) -> None:
+        current_directory = Path.cwd()
+        fpath = current_directory / file.path
+        fpath.parent.mkdir(parents=True, exist_ok=True)
+        fpath.write_text(file.content)
 
     def make_test_files_in_current_directory(self) -> None:
-        """ Returns path to the main file of the test"""
-        current_directory = Path.cwd()
         for file in self.files:
-            fpath = current_directory / file.path
-            fpath.parent.mkdir(parents=True, exist_ok=True)
-            fpath.write_text(file.content)
+            self.make_test_file(file)
 
-    def runtest(self):
-        # test_execution_dirpath = Path(self.temp_dir.name)
-        # assert test_execution_dirpath.exists()
+    def remove_cache_files(self, fpath_no_suffix: Path) -> None:
+        cache_file = Path(self.incremental_cache_dir)
+        cache_file /= '.'.join([str(part) for part in sys.version_info[:2]])
+        for part in fpath_no_suffix.parts:
+            cache_file /= part
 
-        try:
-            # if not self.source_code:
-            #     return
-            # test_specific_modules = make_files(test_execution_dirpath, self.files)
-            temp_dir = tempfile.TemporaryDirectory(prefix='pytest-mypy-', dir=self.root_directory)
-            execution_path = Path(temp_dir.name)
-            assert execution_path.exists()
+        data_json_file = cache_file.with_suffix('.data.json')
+        if data_json_file.exists():
+            data_json_file.unlink()
+        meta_json_file = cache_file.with_suffix('.meta.json')
+        if meta_json_file.exists():
+            meta_json_file.unlink()
 
-            with utils.temp_environ(), utils.temp_path(), utils.cd(execution_path), utils.temp_sys_modules():
+        for parent_dir in cache_file.parents:
+            if parent_dir.exists() and \
+                    len(list(parent_dir.iterdir())) == 0 and \
+                    str(self.incremental_cache_dir) in str(parent_dir):
+                parent_dir.rmdir()
+
+    def find_dependent_paths(self, path: Path) -> List[Path]:
+        py_module = '.'.join(path.with_suffix('').parts)
+        dependants = []
+        for dirpath, _, filenames in os.walk(self.incremental_cache_dir):
+            for filename in filenames:
+                path = Path(dirpath) / filename
+                if f'"{py_module}"' in path.read_text():
+                    dependants.append(path.with_suffix('').with_suffix(''))
+        return dependants
+
+    def custom_init(self):
+        pass
+
+    def typecheck_in_new_subprocess(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
+        import distutils.spawn
+        mypy_executable = distutils.spawn.find_executable('mypy')
+
+        # add current directory to path
+        self.environment_variables['PYTHONPATH'] = str(execution_path)
+        completed = subprocess.run([mypy_executable, *mypy_cmd_options],
+                                   stdout=subprocess.PIPE, cwd=os.getcwd(),
+                                   env=self.environment_variables)
+        captured_stdout = completed.stdout.decode()
+        return completed.returncode, captured_stdout
+
+    def typecheck_in_same_process(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
+            with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
                 # add custom environment variables
-                for key, val in self.extra_environment_variables.items():
+                for key, val in self.environment_variables.items():
                     os.environ[key] = val
 
                 # add current directory to path
                 sys.path.insert(0, str(execution_path))
 
+                with capturer.CaptureOutput() as captured_std_streams:
+                    return_code = run_mypy_typechecking(mypy_cmd_options)
+
+                return return_code, captured_std_streams.get_text()
+
+    def runtest(self):
+        try:
+            temp_dir = tempfile.TemporaryDirectory(prefix='pytest-mypy-', dir=self.root_directory)
+
+            execution_path = Path(temp_dir.name)
+            assert execution_path.exists()
+
+            with utils.cd(execution_path):
                 # start from main.py
+                main_file = str(execution_path / 'main.py')
                 mypy_cmd_options = self.prepare_mypy_cmd_options()
-                mypy_cmd_options.append(str(execution_path / 'main.py'))
+                mypy_cmd_options.append(main_file)
+
+                # extension point for derived packages
+                self.custom_init()
 
                 # make files
                 self.make_test_files_in_current_directory()
 
-                # main_fpath = test_execution_dirpath / 'main.py'
-                # main_fpath.write_text(self.source_code)
-                # mypy_cmd_options.append(str(main_fpath))
+                if self.same_process:
+                    returncode, captured_stdout = self.typecheck_in_same_process(execution_path, mypy_cmd_options)
+                else:
+                    returncode, captured_stdout = self.typecheck_in_new_subprocess(execution_path, mypy_cmd_options)
 
-                with capturer.CaptureOutput() as captured_std_streams:
-                    return_code = typecheck_with_mypy(mypy_cmd_options)
-
-                if return_code == ReturnCodes.FATAL_ERROR:
+                if returncode == ReturnCodes.FATAL_ERROR:
                     raise TypecheckAssertionError(error_message='Critical error occurred')
 
                 output_lines = []
-                for line in captured_std_streams.get_lines():
+                for line in captured_stdout.splitlines():
                     output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
                     output_lines.append(output_line)
-
-                # for module in test_specific_modules:
-                #     # remove created modules from sys.modules, so name could be reused
-                #     parts = module.split('.')
-                #     for i in range(len(parts)):
-                #         parent_module = '.'.join(parts[:i + 1])
-                #         if parent_module in sys.modules:
-                #             del sys.modules[parent_module]
-
                 assert_string_arrays_equal(expected=self.expected_output_lines,
                                            actual=output_lines)
         finally:
             temp_dir.cleanup()
+            # remove created modules and all their dependants from cache
+            if not self.disable_cache:
+                for file in self.files:
+                    path = Path(file.path)
+                    self.remove_cache_files(path.with_suffix(''))
+
+                    dependants = self.find_dependent_paths(path)
+                    for dependant in dependants:
+                        self.remove_cache_files(dependant)
+
+        assert not os.path.exists(temp_dir.name)
 
     def prepare_mypy_cmd_options(self) -> List[str]:
-        incremental_cache_dir = os.path.join(self.root_directory, '.mypy_cache')
-
         mypy_cmd_options = [
             '--show-traceback',
             '--no-silence-site-packages',
@@ -182,7 +236,7 @@ class TestItem(pytest.Item):
         if not self.disable_cache:
             mypy_cmd_options.extend([
                 '--cache-dir',
-                incremental_cache_dir
+                self.incremental_cache_dir
             ])
 
         python_version = '.'.join([str(part) for part in sys.version_info[:2]])
