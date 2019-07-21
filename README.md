@@ -2,25 +2,25 @@
 
 # PyTest plugin for testing mypy custom plugins
 
-[![Build Status](https://travis-ci.org/mkurnikov/pytest-mypy-plugins.svg?branch=master)](https://travis-ci.org/mkurnikov/pytest-mypy-plugins)
+[![Build Status](https://travis-ci.org/typeddjango/pytest-mypy-plugins.svg?branch=master)](https://travis-ci.org/typeddjango/pytest-mypy-plugins)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
 Examples of a test case:
 ```
-[case my_test_case]
-class MyClass:
-    def method(self) -> str:
-        pass
-reveal_type(MyClass().method())  # N: Revealed type is 'builtins.str'
-```
-```
-[CASE myTestCase]
-[disable_cache]
-[env DJANGO_SETTINGS_MODULE=settings]
-
-print('hello, world)
-
-[/CASE]
+-   case: request_object_has_user_of_type_auth_user_model
+    disable_cache: true
+    main: |
+        from django.http.request import HttpRequest
+        reveal_type(HttpRequest().user)  # N: Revealed type is 'myapp.models.MyUser'
+        # check that other fields work ok
+        reveal_type(HttpRequest().method)  # N: Revealed type is 'Union[builtins.str, None]'
+    files:
+        -   path: myapp/__init__.py
+        -   path: myapp/models.py
+            content: |
+                from django.db import models
+                class MyUser(models.Model):
+                    pass
 ```
 
 Options:
@@ -30,30 +30,8 @@ mypy-tests:
                         Base directory for tests to use
   --mypy-ini-file=MYPY_INI_FILE
                         Which .ini file to use as a default config for tests
-```
-
-## Documentation
-
-### General structure
-
-Test case starts with the
-```
-[case my_test]
-```
-where `my_test` is a name of test. It could be camelCase or snake_case, no need for the `test_` prefix. `case` keyword could be uppercased `CASE` too, if it helps readability.
-
-Test case could optionally end with
-```
-[/case]
-```
-(or `[/CASE]`)
-if it helps readability.
-
-All text between `case` delimiters is a code for a `main.py` file, except for special sections.
-
-### Sections
-
-Format is
-```
-[SECTION_NAME( SECTION_ATTRS)?]
+  --mypy-same-process 
+                        Now, to help with various issues in django-stubs, it runs every single test in the subprocess mypy call. 
+                        Some debuggers cannot attach to subprocess, so enable this flag to make mypy check happen in the same process.
+                        (Could cause cache issues)
 ```

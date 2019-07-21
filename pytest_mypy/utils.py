@@ -24,11 +24,20 @@ def temp_environ():
 @contextmanager
 def temp_path():
     """A context manager which allows the ability to set sys.path temporarily"""
-    path = [p for p in sys.path]
+    path = sys.path[:]
     try:
         yield
     finally:
-        sys.path = [p for p in path]
+        sys.path = path[:]
+
+
+@contextmanager
+def temp_sys_modules():
+    sys_modules = sys.modules.copy()
+    try:
+        yield
+    finally:
+        sys.modules = sys_modules.copy()
 
 
 def fname_to_module(fpath: Path, root_path: Path) -> Optional[str]:
@@ -56,7 +65,7 @@ class TypecheckAssertionError(AssertionError):
         return self.error_message
 
 
-def cleanup_lines(lines: List[str]) -> List[str]:
+def remove_common_prefix(lines: List[str]) -> List[str]:
     """Remove common directory prefix from all strings in a.
 
     This uses a naive string replace; it seems to work well enough. Also
@@ -153,18 +162,28 @@ def remove_empty_lines(lines: List[str]) -> List[str]:
     return filtered_lines
 
 
+def sorted_by_file_and_line(lines: List[str]) -> List[str]:
+    def extract_parts_as_tuple(line: str) -> Tuple[str, int, str]:
+        if len(line.split(':', maxsplit=2)) < 3:
+            return ('', 0, '')
+
+        fname, line_number, contents = line.split(':', maxsplit=2)
+        return fname, int(line_number), contents
+    return sorted(lines, key=extract_parts_as_tuple)
+
+
 def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
     """
-    expected = remove_empty_lines(expected)
-    actual = remove_empty_lines(actual)
+    expected = sorted_by_file_and_line(remove_empty_lines(expected))
+    actual = sorted_by_file_and_line(remove_empty_lines(actual))
 
-    actual = cleanup_lines(actual)
+    actual = remove_common_prefix(actual)
     error_message = ''
 
-    if set(actual) != set(expected):
+    if expected != actual:
         num_skip_start = _num_skipped_prefix_lines(expected, actual)
         num_skip_end = _num_skipped_suffix_lines(expected, actual)
 
@@ -179,7 +198,7 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
         first_diff = -1
 
         # Display only this many first characters of identical lines.
-        width = 75
+        width = 100
 
         for i in range(num_skip_start, len(expected) - num_skip_end):
             if i >= len(actual) or expected[i] != actual[i]:
@@ -217,8 +236,8 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
         error_message += '\n'
 
         if 0 <= first_diff < len(actual) and (
-            len(expected[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
-            or len(actual[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT):
+                len(expected[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+                or len(actual[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT):
             # Display message that helps visualize the differences between two
             # long lines.
             error_message = _add_aligned_message(expected[first_diff], actual[first_diff],

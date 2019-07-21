@@ -9,15 +9,13 @@ dependencies = [
     'pytest',
     'mypy',
     'decorator',
-    'capturer'
+    'capturer',
+    'pyyaml'
 ]
-if sys.version_info[:2] < (3, 7):
-    # dataclasses port for 3.6
-    dependencies += ['dataclasses']
 
 setup(
     name='pytest-mypy-plugins',
-    version='0.3.0',
+    version='1.0.0',
     description='pytest plugin for writing tests for mypy plugins',
     long_description=readme,
     long_description_content_type='text/markdown',

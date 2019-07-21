@@ -1,3 +1,0 @@
-print('hello, world')
-[env CONFIG_FILE=${MYPY_CWD}/mypy.ini]
-
