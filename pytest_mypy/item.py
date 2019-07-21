@@ -158,6 +158,7 @@ class YamlTestItem(pytest.Item):
     def typecheck_in_new_subprocess(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
         import distutils.spawn
         mypy_executable = distutils.spawn.find_executable('mypy')
+        assert mypy_executable is not None
 
         # add current directory to path
         self.environment_variables['PYTHONPATH'] = str(execution_path)

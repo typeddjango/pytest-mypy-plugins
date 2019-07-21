@@ -164,6 +164,9 @@ def remove_empty_lines(lines: List[str]) -> List[str]:
 
 def sorted_by_file_and_line(lines: List[str]) -> List[str]:
     def extract_parts_as_tuple(line: str) -> Tuple[str, int, str]:
+        if len(line.split(':', maxsplit=2)) < 3:
+            return ('', 0, '')
+
         fname, line_number, contents = line.split(':', maxsplit=2)
         return fname, int(line_number), contents
     return sorted(lines, key=extract_parts_as_tuple)
