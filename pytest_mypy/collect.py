@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, TYPE_CHECKING, Type
 
-import dataclasses
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
@@ -10,10 +9,10 @@ if TYPE_CHECKING:
     from pytest_mypy.item import YamlTestItem
 
 
-@dataclasses.dataclass
 class File:
-    path: str
-    content: str
+    def __init__(self, path: str, content: str):
+        self.path = path
+        self.content = content
 
 
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
