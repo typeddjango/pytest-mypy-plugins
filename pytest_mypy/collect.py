@@ -1,12 +1,10 @@
-from typing import Any, Dict, List, TYPE_CHECKING, Type
+from typing import Any, Dict, List
 
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 
 from pytest_mypy import utils
-if TYPE_CHECKING:
-    from pytest_mypy.item import YamlTestItem
 
 
 class File:
@@ -44,11 +42,9 @@ class SafeLineLoader(yaml.SafeLoader):
 
 
 class YamlTestFile(pytest.File):
-    def get_test_class(self) -> 'Type[YamlTestItem]':
-        from pytest_mypy.item import YamlTestItem
-        return YamlTestItem
-
     def collect(self):
+        from pytest_mypy.item import YamlTestItem
+
         parsed_file = yaml.load(stream=self.fspath.read_text('utf8'), Loader=SafeLineLoader)
         if parsed_file is None:
             return
@@ -76,15 +72,15 @@ class YamlTestFile(pytest.File):
             disable_cache = raw_test.get('disable_cache', False)
             expected_output_lines = raw_test.get('out', '').split('\n')
 
-            yield self.get_test_class()(name=test_name,
-                                        collector=self,
-                                        config=self.config,
-                                        files=test_files,
-                                        starting_lineno=starting_lineno,
-                                        environment_variables=extra_environment_variables,
-                                        disable_cache=disable_cache,
-                                        expected_output_lines=output_from_comments + expected_output_lines,
-                                        parsed_test_data=raw_test)
+            yield YamlTestItem(name=test_name,
+                               collector=self,
+                               config=self.config,
+                               files=test_files,
+                               starting_lineno=starting_lineno,
+                               environment_variables=extra_environment_variables,
+                               disable_cache=disable_cache,
+                               expected_output_lines=output_from_comments + expected_output_lines,
+                               parsed_test_data=raw_test)
 
 
 def pytest_collect_file(path, parent):
@@ -100,3 +96,6 @@ def pytest_addoption(parser: Parser) -> None:
                     help='Which .ini file to use as a default config for tests')
     group.addoption('--mypy-same-process', action='store_true',
                     help='Run in the same process. Useful for debugging, will create problems with import cache')
+    group.addoption('--mypy-extension-hook', type=str,
+                    help='Fully qualifield path to the extension hook function, in case you need custom yaml keys. '
+                         'Has to be top-level.')
