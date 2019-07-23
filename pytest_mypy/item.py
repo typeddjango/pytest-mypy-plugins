@@ -1,9 +1,10 @@
+import importlib
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Callable
 
 import capturer
 import pytest
@@ -152,9 +153,6 @@ class YamlTestItem(pytest.Item):
                     dependants.append(path.with_suffix('').with_suffix(''))
         return dependants
 
-    def custom_init(self):
-        pass
-
     def typecheck_in_new_subprocess(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
         import distutils.spawn
         mypy_executable = distutils.spawn.find_executable('mypy')
@@ -163,10 +161,12 @@ class YamlTestItem(pytest.Item):
         # add current directory to path
         self.environment_variables['PYTHONPATH'] = str(execution_path)
         completed = subprocess.run([mypy_executable, *mypy_cmd_options],
-                                   stdout=subprocess.PIPE, cwd=os.getcwd(),
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   cwd=os.getcwd(),
                                    env=self.environment_variables)
         captured_stdout = completed.stdout.decode()
-        return completed.returncode, captured_stdout
+        captured_stderr = completed.stderr.decode()
+        return completed.returncode, captured_stdout + captured_stderr
 
     def typecheck_in_same_process(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
             with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
@@ -182,6 +182,13 @@ class YamlTestItem(pytest.Item):
 
                 return return_code, captured_std_streams.get_text()
 
+    def execute_extension_hook(self) -> None:
+        extension_hook_fqname = self.config.option.mypy_extension_hook
+        module_name, func_name = extension_hook_fqname.rsplit('.', maxsplit=1)
+        module = importlib.import_module(module_name)
+        extension_hook = getattr(module, func_name)
+        extension_hook(self)
+
     def runtest(self):
         try:
             temp_dir = tempfile.TemporaryDirectory(prefix='pytest-mypy-', dir=self.root_directory)
@@ -196,7 +203,8 @@ class YamlTestItem(pytest.Item):
                 mypy_cmd_options.append(main_file)
 
                 # extension point for derived packages
-                self.custom_init()
+                if hasattr(self.config.option, 'mypy_extension_hook'):
+                    self.execute_extension_hook()
 
                 # make files
                 self.make_test_files_in_current_directory()
