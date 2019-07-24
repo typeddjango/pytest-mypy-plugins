@@ -3,8 +3,9 @@ import os
 import subprocess
 import sys
 import tempfile
+from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Callable
+from typing import Any, Dict, List, Tuple, Callable, Optional
 
 import capturer
 import pytest
@@ -96,6 +97,7 @@ class YamlTestItem(pytest.Item):
                  expected_output_lines: List[str],
                  environment_variables: Dict[str, Any],
                  disable_cache: bool,
+                 mypy_config: str,
                  parsed_test_data: Dict[str, Any]) -> None:
         super().__init__(name, collector, config)
         self.files = files
@@ -103,6 +105,7 @@ class YamlTestItem(pytest.Item):
         self.disable_cache = disable_cache
         self.expected_output_lines = expected_output_lines
         self.starting_lineno = starting_lineno
+        self.additional_mypy_config = mypy_config
         self.parsed_test_data = parsed_test_data
         self.same_process = self.config.option.mypy_same_process
 
@@ -201,7 +204,7 @@ class YamlTestItem(pytest.Item):
             with utils.cd(execution_path):
                 # start from main.py
                 main_file = str(execution_path / 'main.py')
-                mypy_cmd_options = self.prepare_mypy_cmd_options()
+                mypy_cmd_options = self.prepare_mypy_cmd_options(execution_path)
                 mypy_cmd_options.append(main_file)
 
                 # extension point for derived packages
@@ -242,7 +245,7 @@ class YamlTestItem(pytest.Item):
 
         assert not os.path.exists(temp_dir.name)
 
-    def prepare_mypy_cmd_options(self) -> List[str]:
+    def prepare_mypy_cmd_options(self, execution_path: Path) -> List[str]:
         mypy_cmd_options = [
             '--show-traceback',
             '--no-silence-site-packages',
@@ -255,8 +258,22 @@ class YamlTestItem(pytest.Item):
 
         python_version = '.'.join([str(part) for part in sys.version_info[:2]])
         mypy_cmd_options.append(f'--python-version={python_version}')
+
+        # merge self.base_ini_fpath and self.additional_mypy_config into one file and copy to the typechecking folder
+        mypy_ini_config = ConfigParser()
         if self.base_ini_fpath:
-            mypy_cmd_options.append(f'--config-file={self.base_ini_fpath}')
+            mypy_ini_config.read(self.base_ini_fpath)
+        if self.additional_mypy_config:
+            additional_config = self.additional_mypy_config
+            if '[mypy]' not in additional_config:
+                additional_config = '[mypy]\n' + additional_config
+            mypy_ini_config.read_string(additional_config)
+
+        if mypy_ini_config.sections():
+            mypy_config_file_path = execution_path / 'mypy.ini'
+            with mypy_config_file_path.open('w') as f:
+                mypy_ini_config.write(f)
+            mypy_cmd_options.append(f'--config-file={str(mypy_config_file_path)}')
 
         return mypy_cmd_options
 

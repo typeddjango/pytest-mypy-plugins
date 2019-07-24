@@ -71,6 +71,7 @@ class YamlTestFile(pytest.File):
             extra_environment_variables = parse_environment_variables(raw_test.get('env', []))
             disable_cache = raw_test.get('disable_cache', False)
             expected_output_lines = raw_test.get('out', '').split('\n')
+            additional_mypy_config = raw_test.get('mypy_config', '')
 
             yield YamlTestItem(name=test_name,
                                collector=self,
@@ -80,7 +81,8 @@ class YamlTestFile(pytest.File):
                                environment_variables=extra_environment_variables,
                                disable_cache=disable_cache,
                                expected_output_lines=output_from_comments + expected_output_lines,
-                               parsed_test_data=raw_test)
+                               parsed_test_data=raw_test,
+                               mypy_config=additional_mypy_config)
 
 
 def pytest_collect_file(path, parent):
