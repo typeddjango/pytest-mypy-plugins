@@ -153,7 +153,7 @@ class YamlTestItem(pytest.Item):
                     dependants.append(path.with_suffix('').with_suffix(''))
         return dependants
 
-    def typecheck_in_new_subprocess(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
+    def typecheck_in_new_subprocess(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, Tuple[str, str]]:
         import distutils.spawn
         mypy_executable = distutils.spawn.find_executable('mypy')
         assert mypy_executable is not None
@@ -166,9 +166,9 @@ class YamlTestItem(pytest.Item):
                                    env=self.environment_variables)
         captured_stdout = completed.stdout.decode()
         captured_stderr = completed.stderr.decode()
-        return completed.returncode, captured_stdout + captured_stderr
+        return completed.returncode, (captured_stdout, captured_stderr)
 
-    def typecheck_in_same_process(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, str]:
+    def typecheck_in_same_process(self, execution_path: Path, mypy_cmd_options: List[Any]) -> Tuple[int, Tuple[str, str]]:
             with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
                 # add custom environment variables
                 for key, val in self.environment_variables.items():
@@ -177,10 +177,12 @@ class YamlTestItem(pytest.Item):
                 # add current directory to path
                 sys.path.insert(0, str(execution_path))
 
-                with capturer.CaptureOutput() as captured_std_streams:
+                with capturer.CaptureOutput(merged=False) as captured_std_streams:
                     return_code = run_mypy_typechecking(mypy_cmd_options)
 
-                return return_code, captured_std_streams.get_text()
+                stdout = captured_std_streams.stdout.get_text()
+                stderr = captured_std_streams.stderr.get_text()
+                return return_code, (stdout, stderr)
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
@@ -203,22 +205,25 @@ class YamlTestItem(pytest.Item):
                 mypy_cmd_options.append(main_file)
 
                 # extension point for derived packages
-                if hasattr(self.config.option, 'mypy_extension_hook'):
+                if (hasattr(self.config.option, 'mypy_extension_hook')
+                        and self.config.option.mypy_extension_hook is not None):
                     self.execute_extension_hook()
 
                 # make files
                 self.make_test_files_in_current_directory()
 
                 if self.same_process:
-                    returncode, captured_stdout = self.typecheck_in_same_process(execution_path, mypy_cmd_options)
+                    returncode, (stdout, stderr) = self.typecheck_in_same_process(execution_path, mypy_cmd_options)
                 else:
-                    returncode, captured_stdout = self.typecheck_in_new_subprocess(execution_path, mypy_cmd_options)
+                    returncode, (stdout, stderr) = self.typecheck_in_new_subprocess(execution_path, mypy_cmd_options)
 
+                mypy_output = stdout + stderr
                 if returncode == ReturnCodes.FATAL_ERROR:
+                    print(mypy_output, file=sys.stderr)
                     raise TypecheckAssertionError(error_message='Critical error occurred')
 
                 output_lines = []
-                for line in captured_stdout.splitlines():
+                for line in mypy_output.splitlines():
                     output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
                     output_lines.append(output_line)
                 assert_string_arrays_equal(expected=self.expected_output_lines,
