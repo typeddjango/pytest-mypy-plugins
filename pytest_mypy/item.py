@@ -202,15 +202,15 @@ class YamlTestItem(pytest.Item):
             assert execution_path.exists()
 
             with utils.cd(execution_path):
-                # start from main.py
-                main_file = str(execution_path / 'main.py')
-                mypy_cmd_options = self.prepare_mypy_cmd_options(execution_path)
-                mypy_cmd_options.append(main_file)
-
                 # extension point for derived packages
                 if (hasattr(self.config.option, 'mypy_extension_hook')
                         and self.config.option.mypy_extension_hook is not None):
                     self.execute_extension_hook()
+
+                # start from main.py
+                main_file = str(execution_path / 'main.py')
+                mypy_cmd_options = self.prepare_mypy_cmd_options(execution_path)
+                mypy_cmd_options.append(main_file)
 
                 # make files
                 self.make_test_files_in_current_directory()
