@@ -61,3 +61,9 @@
         a + 1
     mypy_config: |
         strict_optional = False
+
+-   case: skip_if_condition_is_true
+    skip_if:
+        - required_package: psycopg2
+    main: |
+        reveal_type(1)  # N: Revealed type is 'builtins.str'

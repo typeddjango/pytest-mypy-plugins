@@ -1,3 +1,4 @@
+import importlib
 from typing import Any, Dict, List
 
 import pytest
@@ -41,6 +42,14 @@ class SafeLineLoader(yaml.SafeLoader):
         return mapping
 
 
+def is_importable(package: str) -> bool:
+    try:
+        importlib.import_module(package)
+        return True
+    except ModuleNotFoundError:
+        return False
+
+
 class YamlTestFile(pytest.File):
     def collect(self):
         from pytest_mypy.item import YamlTestItem
@@ -72,6 +81,14 @@ class YamlTestFile(pytest.File):
             disable_cache = raw_test.get('disable_cache', False)
             expected_output_lines = raw_test.get('out', '').split('\n')
             additional_mypy_config = raw_test.get('mypy_config', '')
+
+            skip = False
+            for condition in raw_test.get('skip_if', []):
+                required_package = condition.get('required_package')
+                if required_package and not is_importable(required_package):
+                    skip = True
+            if skip:
+                continue
 
             yield YamlTestItem(name=test_name,
                                collector=self,
