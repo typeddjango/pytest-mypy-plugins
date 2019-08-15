@@ -6,7 +6,8 @@
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
 Examples of a test case:
-```
+
+```yaml
 -   case: request_object_has_user_of_type_auth_user_model
     disable_cache: true
     main: |
@@ -24,6 +25,7 @@ Examples of a test case:
 ```
 
 Options:
+
 ```
 mypy-tests:
   --mypy-testing-base=MYPY_TESTING_BASE
