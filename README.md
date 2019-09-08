@@ -1,13 +1,24 @@
 <img src="http://mypy-lang.org/static/mypy_light.svg" alt="mypy logo" width="300px"/>
 
-# PyTest plugin for testing mypy custom plugins
+# pytest plugin for testing mypy types, stubs, and plugins
 
 [![Build Status](https://travis-ci.org/typeddjango/pytest-mypy-plugins.svg?branch=master)](https://travis-ci.org/typeddjango/pytest-mypy-plugins)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
+
+## Installation
+
+```bash
+pip install pytest-mypy-plugins
+```
+
+
+## Usage
+
 Examples of a test case:
 
 ```yaml
+# typesafety/test_request.yml
 -   case: request_object_has_user_of_type_auth_user_model
     disable_cache: true
     main: |
@@ -24,7 +35,14 @@ Examples of a test case:
                     pass
 ```
 
-Options:
+Running:
+
+```bash
+pytest
+```
+
+
+## Options
 
 ```
 mypy-tests:
@@ -37,3 +55,13 @@ mypy-tests:
                         Some debuggers cannot attach to subprocess, so enable this flag to make mypy check happen in the same process.
                         (Could cause cache issues)
 ```
+
+
+## Further reading
+
+- [Testing mypy stubs, plugins, and types](https://sobolevn.me/2019/08/testing-mypy-types)
+
+
+## License
+
+[MIT](https://github.com/typeddjango/pytest-mypy-plugins/blob/master/LICENSE)
