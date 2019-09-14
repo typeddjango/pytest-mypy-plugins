@@ -249,6 +249,9 @@ class YamlTestItem(pytest.Item):
         mypy_cmd_options = [
             '--show-traceback',
             '--no-silence-site-packages',
+            '--no-error-summary',
+            '--no-pretty',
+            '--hide-error-context'
         ]
         if not self.disable_cache:
             mypy_cmd_options.extend([
