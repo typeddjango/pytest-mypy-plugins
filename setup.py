@@ -1,5 +1,3 @@
-import sys
-
 from setuptools import setup
 
 with open('README.md', 'r') as f:
@@ -15,7 +13,7 @@ dependencies = [
 
 setup(
     name='pytest-mypy-plugins',
-    version='1.0.3',
+    version='1.1.0',
     description='pytest plugin for writing tests for mypy plugins',
     long_description=readme,
     long_description_content_type='text/markdown',
