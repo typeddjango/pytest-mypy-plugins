@@ -289,7 +289,7 @@ def extract_errors_from_comments(fname: str, input_lines: List[str]) -> List[str
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
-    lines, _ = inspect.getsourcelines(attr)
+    lines, _ = inspect.getsourcelines(attr)  # type: ignore[arg-type]
     for lnum, line in enumerate(lines):
         no_space_line = line.strip()
         if f'def {attr.__name__}' in no_space_line:
