@@ -7,7 +7,6 @@ dependencies = [
     'pytest',
     'mypy>=0.730',
     'decorator',
-    'capturer',
     'pyyaml'
 ]
 

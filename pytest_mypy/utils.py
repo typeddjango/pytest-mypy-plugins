@@ -1,11 +1,13 @@
 # Borrowed from Pew.
 # See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
+import contextlib
 import inspect
+import io
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple
 
 from decorator import contextmanager
 
@@ -310,3 +312,15 @@ def cd(path):
         yield
     finally:
         os.chdir(prev_cwd)
+
+
+@contextmanager
+def capture_std_streams() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
+    """Context manager to temporarily capture stdout and stderr.
+
+    Returns ``(stdout, stderr)``.
+    """
+    out = io.StringIO()
+    err = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        yield out, err
