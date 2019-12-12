@@ -1,3 +1,4 @@
+import tempfile
 from typing import Any, Dict, List
 
 import pytest
@@ -96,7 +97,7 @@ def pytest_collect_file(path, parent):
 
 def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup('mypy-tests')
-    group.addoption('--mypy-testing-base', type=str, default='/tmp',
+    group.addoption('--mypy-testing-base', type=str, default=tempfile.gettempdir(),
                     help='Base directory for tests to use')
     group.addoption('--mypy-ini-file', type=str,
                     help='Which .ini file to use as a default config for tests')

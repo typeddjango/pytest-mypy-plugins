@@ -7,7 +7,6 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Callable, Optional
 
-import capturer
 import pytest
 from _pytest._code import ExceptionInfo
 from _pytest._code.code import ReprEntry, ReprFileLocation
@@ -17,7 +16,12 @@ from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 from pytest_mypy import utils
 from pytest_mypy.collect import File, YamlTestFile
-from pytest_mypy.utils import TypecheckAssertionError, assert_string_arrays_equal, fname_to_module
+from pytest_mypy.utils import (
+    TypecheckAssertionError,
+    capture_std_streams,
+    assert_string_arrays_equal,
+    fname_to_module,
+)
 
 
 class TraceLastReprEntry(ReprEntry):
@@ -163,6 +167,9 @@ class YamlTestItem(pytest.Item):
 
         # add current directory to path
         self.environment_variables['PYTHONPATH'] = str(execution_path)
+        # Windows requires this to be set, otherwise the interpreter crashes
+        if 'SYSTEMROOT' in os.environ:
+            self.environment_variables['SYSTEMROOT'] = os.environ['SYSTEMROOT']
         completed = subprocess.run([mypy_executable, *mypy_cmd_options],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    cwd=os.getcwd(),
@@ -180,12 +187,10 @@ class YamlTestItem(pytest.Item):
                 # add current directory to path
                 sys.path.insert(0, str(execution_path))
 
-                with capturer.CaptureOutput(merged=False) as captured_std_streams:
+                with capture_std_streams() as (stdout, stderr):
                     return_code = run_mypy_typechecking(mypy_cmd_options)
 
-                stdout = captured_std_streams.stdout.get_text()
-                stderr = captured_std_streams.stderr.get_text()
-                return return_code, (stdout, stderr)
+                return return_code, (stdout.getvalue(), stderr.getvalue())
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
