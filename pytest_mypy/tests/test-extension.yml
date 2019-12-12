@@ -3,5 +3,5 @@
         # if hook works, main should contain 'reveal_type(1)'
     reveal_type: 1
     out: |
-        main:1: note: Revealed type is 'builtins.int'
+        main:1: note: Revealed type is 'Literal[1]?'
 
