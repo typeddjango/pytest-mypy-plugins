@@ -7,13 +7,13 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple, Union
 
 from decorator import contextmanager
 
 
 @contextmanager
-def temp_environ():
+def temp_environ() -> Iterator[None]:
     """Allow the ability to set os.environ temporarily"""
     environ = dict(os.environ)
     try:
@@ -24,7 +24,7 @@ def temp_environ():
 
 
 @contextmanager
-def temp_path():
+def temp_path() -> Iterator[None]:
     """A context manager which allows the ability to set sys.path temporarily"""
     path = sys.path[:]
     try:
@@ -34,7 +34,7 @@ def temp_path():
 
 
 @contextmanager
-def temp_sys_modules():
+def temp_sys_modules() -> Iterator[None]:
     sys_modules = sys.modules.copy()
     try:
         yield
@@ -56,14 +56,14 @@ MIN_LINE_LENGTH_FOR_ALIGNMENT = 5
 
 
 class TypecheckAssertionError(AssertionError):
-    def __init__(self, error_message: Optional[str] = None, lineno: int = 0):
-        self.error_message = error_message
+    def __init__(self, error_message: Optional[str] = None, lineno: int = 0) -> None:
+        self.error_message = error_message or ''
         self.lineno = lineno
 
-    def first_line(self):
+    def first_line(self) -> str:
         return self.__class__.__name__ + '(message="Invalid output")'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.error_message
 
 
@@ -258,7 +258,8 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
                                           lineno=lineno)
 
 
-def build_output_line(fname: str, lnum: int, severity: str, message: str, col=None) -> str:
+def build_output_line(fname: str, lnum: int, severity: str, message: str,
+                      col: Optional[str] = None) -> str:
     if col is None:
         return f'{fname}:{lnum + 1}: {severity}: {message}'
     else:
@@ -294,7 +295,7 @@ def extract_errors_from_comments(fname: str, input_lines: List[str]) -> List[str
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
-    lines, _ = inspect.getsourcelines(attr)  # type: ignore[arg-type]
+    lines, _ = inspect.getsourcelines(attr)
     for lnum, line in enumerate(lines):
         no_space_line = line.strip()
         if f'def {attr.__name__}' in no_space_line:
@@ -303,7 +304,7 @@ def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[s
 
 
 @contextmanager
-def cd(path):
+def cd(path: Union[str, Path]) -> Iterator[None]:
     """Context manager to temporarily change working directories"""
     if not path:
         return

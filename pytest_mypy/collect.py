@@ -1,12 +1,18 @@
 import tempfile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Iterator, TYPE_CHECKING, Optional
 
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
+from _pytest.nodes import Node
+from py._path.local import LocalPath
 
 from pytest_mypy import utils
 from pytest_mypy.utils import string_to_bool
+
+if TYPE_CHECKING:
+    from pytest_mypy.item import YamlTestItem
+
 
 
 class File:
@@ -36,7 +42,7 @@ def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
 
 
 class SafeLineLoader(yaml.SafeLoader):
-    def construct_mapping(self, node, deep=False):
+    def construct_mapping(self, node: yaml.Node, deep: bool = False) -> None:
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
@@ -48,7 +54,7 @@ class SafeLineLoader(yaml.SafeLoader):
 
 
 class YamlTestFile(pytest.File):
-    def collect(self):
+    def collect(self) -> Iterator['YamlTestItem']:
         from pytest_mypy.item import YamlTestItem
 
         parsed_file = yaml.load(stream=self.fspath.read_text('utf8'), Loader=SafeLineLoader)
@@ -93,9 +99,10 @@ class YamlTestFile(pytest.File):
                                    mypy_config=additional_mypy_config)
 
 
-def pytest_collect_file(path, parent):
+def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
     if path.ext in {'.yaml', '.yml'} and path.basename.startswith(('test-', 'test_')):
         return YamlTestFile(path, parent=parent, config=parent.config)
+    return None
 
 
 def pytest_addoption(parser: Parser) -> None:

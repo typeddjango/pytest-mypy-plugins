@@ -14,6 +14,8 @@ from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
+from py._io.terminalwriter import TerminalWriter
+
 from pytest_mypy import utils
 from pytest_mypy.collect import File, YamlTestFile
 from pytest_mypy.utils import (
@@ -25,7 +27,7 @@ from pytest_mypy.utils import (
 
 
 class TraceLastReprEntry(ReprEntry):
-    def toterminal(self, tw):
+    def toterminal(self, tw: TerminalWriter) -> None:
         self.reprfileloc.toterminal(tw)
         for line in self.lines:
             red = line.startswith("E   ")
@@ -199,7 +201,7 @@ class YamlTestItem(pytest.Item):
         extension_hook = getattr(module, func_name)
         extension_hook(self)
 
-    def runtest(self):
+    def runtest(self) -> None:
         try:
             temp_dir = tempfile.TemporaryDirectory(prefix='pytest-mypy-', dir=self.root_directory)
 
@@ -309,5 +311,5 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style='native')
 
-    def reportinfo(self):
+    def reportinfo(self) -> Tuple[str, Optional[str], str]:
         return self.fspath, None, self.name
