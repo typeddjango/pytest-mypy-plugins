@@ -6,6 +6,7 @@ import yaml
 from _pytest.config.argparsing import Parser
 
 from pytest_mypy import utils
+from pytest_mypy.utils import string_to_bool
 
 
 class File:
@@ -78,16 +79,18 @@ class YamlTestFile(pytest.File):
             expected_output_lines = raw_test.get('out', '').split('\n')
             additional_mypy_config = raw_test.get('mypy_config', '')
 
-            yield YamlTestItem(name=test_name,
-                               collector=self,
-                               config=self.config,
-                               files=test_files,
-                               starting_lineno=starting_lineno,
-                               environment_variables=extra_environment_variables,
-                               disable_cache=disable_cache,
-                               expected_output_lines=output_from_comments + expected_output_lines,
-                               parsed_test_data=raw_test,
-                               mypy_config=additional_mypy_config)
+            skip = string_to_bool(str(raw_test.get('skip', 'False')))
+            if not skip:
+                yield YamlTestItem(name=test_name,
+                                   collector=self,
+                                   config=self.config,
+                                   files=test_files,
+                                   starting_lineno=starting_lineno,
+                                   environment_variables=extra_environment_variables,
+                                   disable_cache=disable_cache,
+                                   expected_output_lines=output_from_comments + expected_output_lines,
+                                   parsed_test_data=raw_test,
+                                   mypy_config=additional_mypy_config)
 
 
 def pytest_collect_file(path, parent):

@@ -324,3 +324,9 @@ def capture_std_streams() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
     err = io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         yield out, err
+
+
+def string_to_bool(val: str) -> bool:
+    from distutils.util import strtobool
+
+    return bool(strtobool(val.lower()))

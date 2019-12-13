@@ -61,3 +61,9 @@
         a + 1
     mypy_config: |
         strict_optional = False
+
+-   case: skip_incorrect_test_case
+    skip: yes
+    main: |
+        a = 1
+        reveal_type(a)  # N: Revealed type is 'builtins.str'
