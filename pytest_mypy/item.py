@@ -301,7 +301,7 @@ class YamlTestItem(pytest.Item):
             repr_file_location = ReprFileLocation(path=self.fspath,
                                                   lineno=self.starting_lineno + excinfo.value.lineno,
                                                   message='')
-            repr_tb_entry = TraceLastReprEntry(filelocrepr=repr_file_location,
+            repr_tb_entry = TraceLastReprEntry(reprfileloc=repr_file_location,
                                                lines=exception_repr.reprtraceback.reprentries[-1].lines[1:],
                                                style='short',
                                                reprlocals=None,
