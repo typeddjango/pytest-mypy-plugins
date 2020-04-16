@@ -66,4 +66,16 @@
     skip: yes
     main: |
         a = 1
-        reveal_type(a)  # N: Revealed type is 'builtins.str'
+        reveal_type(a)  # N: boom!
+
+-   case: skip_if_true
+    skip: sys.version_info > (2, 0)
+    main: |
+        a = 1
+        a.lower()  # E: boom!
+
+-   case: skip_if_false
+    skip: sys.version_info > (20, 0)
+    main: |
+        a = 1
+        a.lower()  # E: "int" has no attribute "lower"

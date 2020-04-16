@@ -16,9 +16,9 @@ from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 from py._io.terminalwriter import TerminalWriter
 
-from pytest_mypy import utils
-from pytest_mypy.collect import File, YamlTestFile
-from pytest_mypy.utils import (
+from pytest_mypy_plugins import utils
+from pytest_mypy_plugins.collect import File, YamlTestFile
+from pytest_mypy_plugins.utils import (
     TypecheckAssertionError,
     capture_std_streams,
     assert_string_arrays_equal,

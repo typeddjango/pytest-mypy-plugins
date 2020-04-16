@@ -1,4 +1,4 @@
-from pytest_mypy.item import YamlTestItem
+from pytest_mypy_plugins.item import YamlTestItem
 
 
 def hook(item: YamlTestItem) -> None:

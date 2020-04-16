@@ -1,4 +1,7 @@
 import tempfile
+import sys
+import platform
+import os
 from typing import Any, Dict, List, Iterator, TYPE_CHECKING, Optional
 
 import pytest
@@ -7,11 +10,10 @@ from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
 from py._path.local import LocalPath
 
-from pytest_mypy import utils
-from pytest_mypy.utils import string_to_bool
+from pytest_mypy_plugins import utils
 
 if TYPE_CHECKING:
-    from pytest_mypy.item import YamlTestItem
+    from pytest_mypy_plugins.item import YamlTestItem
 
 
 
@@ -55,7 +57,7 @@ class SafeLineLoader(yaml.SafeLoader):
 
 class YamlTestFile(pytest.File):
     def collect(self) -> Iterator['YamlTestItem']:
-        from pytest_mypy.item import YamlTestItem
+        from pytest_mypy_plugins.item import YamlTestItem
 
         parsed_file = yaml.load(stream=self.fspath.read_text('utf8'), Loader=SafeLineLoader)
         if parsed_file is None:
@@ -85,9 +87,10 @@ class YamlTestFile(pytest.File):
             expected_output_lines = raw_test.get('out', '').split('\n')
             additional_mypy_config = raw_test.get('mypy_config', '')
 
-            skip = string_to_bool(str(raw_test.get('skip', 'False')))
+            skip = self._eval_skip(str(raw_test.get('skip', 'False')))
             if not skip:
-                yield YamlTestItem(name=test_name,
+                yield YamlTestItem(
+                                   name=test_name,
                                    collector=self,
                                    config=self.config,
                                    files=test_files,
@@ -97,6 +100,14 @@ class YamlTestFile(pytest.File):
                                    expected_output_lines=output_from_comments + expected_output_lines,
                                    parsed_test_data=raw_test,
                                    mypy_config=additional_mypy_config)
+
+    def _eval_skip(self, skip_if: str) -> bool:
+        return eval(skip_if, {
+            'sys': sys,
+            'os': os,
+            'pytest': pytest,
+            'platform': platform,
+        })
 
 
 def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
