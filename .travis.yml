@@ -17,7 +17,7 @@ jobs:
     script: |
       set -e
       pytest
-  - name: "run test suite with python 3.7"
+  - name: "run test suite with python 3.8"
     python: 3.8
     script: |
       set -e
