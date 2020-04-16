@@ -12,7 +12,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     license="MIT",
-    url="https://github.com/mkurnikov/pytest-mypy-plugins",
+    url="https://github.com/TypedDjango/pytest-mypy-plugins",
     author="Maksim Kurnikov",
     author_email="maxim.kurnikov@gmail.com",
     packages=["pytest_mypy_plugins"],
