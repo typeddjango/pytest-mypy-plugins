@@ -19,6 +19,7 @@ setup(
     # the following makes a plugin available to pytest
     entry_points={"pytest11": ["pytest-mypy-plugins = pytest_mypy_plugins.collect"]},
     install_requires=dependencies,
+    python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
