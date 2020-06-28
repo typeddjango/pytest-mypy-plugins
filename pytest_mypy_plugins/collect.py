@@ -86,10 +86,9 @@ class YamlTestFile(pytest.File):
 
             skip = self._eval_skip(str(raw_test.get("skip", "False")))
             if not skip:
-                yield YamlTestItem(
+                yield YamlTestItem.from_parent(
+                    self,
                     name=test_name,
-                    collector=self,
-                    config=self.config,
                     files=test_files,
                     starting_lineno=starting_lineno,
                     environment_variables=extra_environment_variables,
@@ -105,7 +104,10 @@ class YamlTestFile(pytest.File):
 
 def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
     if path.ext in {".yaml", ".yml"} and path.basename.startswith(("test-", "test_")):
-        return YamlTestFile(path, parent=parent, config=parent.config)
+        try:
+            return YamlTestFile.from_parent(parent, fspath=path)
+        except AttributeError:
+            return YamlTestFile(path, parent=parent, config=parent.config)
     return None
 
 
