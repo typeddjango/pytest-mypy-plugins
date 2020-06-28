@@ -86,17 +86,31 @@ class YamlTestFile(pytest.File):
 
             skip = self._eval_skip(str(raw_test.get("skip", "False")))
             if not skip:
-                yield YamlTestItem.from_parent(
-                    self,
-                    name=test_name,
-                    files=test_files,
-                    starting_lineno=starting_lineno,
-                    environment_variables=extra_environment_variables,
-                    disable_cache=disable_cache,
-                    expected_output_lines=output_from_comments + expected_output_lines,
-                    parsed_test_data=raw_test,
-                    mypy_config=additional_mypy_config,
-                )
+                try:
+                    yield YamlTestItem.from_parent(
+                        self,
+                        name=test_name,
+                        files=test_files,
+                        starting_lineno=starting_lineno,
+                        environment_variables=extra_environment_variables,
+                        disable_cache=disable_cache,
+                        expected_output_lines=output_from_comments + expected_output_lines,
+                        parsed_test_data=raw_test,
+                        mypy_config=additional_mypy_config,
+                    )
+                except AttributeError:
+                    yield YamlTestItem(
+                        name=test_name,
+                        parent=self,
+                        config=self.config,
+                        files=test_files,
+                        starting_lineno=starting_lineno,
+                        environment_variables=extra_environment_variables,
+                        disable_cache=disable_cache,
+                        expected_output_lines=output_from_comments + expected_output_lines,
+                        parsed_test_data=raw_test,
+                        mypy_config=additional_mypy_config,
+                    )
 
     def _eval_skip(self, skip_if: str) -> bool:
         return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
