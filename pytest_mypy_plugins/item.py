@@ -96,8 +96,9 @@ class YamlTestItem(pytest.Item):
     def __init__(
         self,
         name: str,
-        collector: YamlTestFile,
-        config: Config,
+        parent: Optional[YamlTestFile] = None,
+        config: Optional[Config] = None,
+        *,
         files: List[File],
         starting_lineno: int,
         expected_output_lines: List[str],
@@ -106,7 +107,7 @@ class YamlTestItem(pytest.Item):
         mypy_config: str,
         parsed_test_data: Dict[str, Any],
     ) -> None:
-        super().__init__(name, collector, config)
+        super().__init__(name, parent, config)
         self.files = files
         self.environment_variables = environment_variables
         self.disable_cache = disable_cache
@@ -117,9 +118,9 @@ class YamlTestItem(pytest.Item):
         self.same_process = self.config.option.mypy_same_process
 
         # config parameters
-        self.root_directory = config.option.mypy_testing_base
-        if config.option.mypy_ini_file:
-            self.base_ini_fpath = os.path.abspath(config.option.mypy_ini_file)
+        self.root_directory = self.config.option.mypy_testing_base
+        if self.config.option.mypy_ini_file:
+            self.base_ini_fpath = os.path.abspath(self.config.option.mypy_ini_file)
         else:
             self.base_ini_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")

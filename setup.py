@@ -3,7 +3,7 @@ from setuptools import setup
 with open("README.md", "r") as f:
     readme = f.read()
 
-dependencies = ["pytest", "mypy>=0.730", "decorator", "pyyaml"]
+dependencies = ["pytest>=5.4.0", "mypy>=0.730", "decorator", "pyyaml"]
 
 setup(
     name="pytest-mypy-plugins",
