@@ -43,11 +43,11 @@ def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
     return parsed_vars
 
 
-def parse_parametrized(params: List[Dict[str, Any]]) -> List[Mapping[str, Any]]:
+def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any]]:
     if not params:
         return [{}]
-    parsed_params = []
-    # verify param consistency
+
+    parsed_params: List[Mapping[str, Any]] = []
     known_params = None
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
@@ -59,9 +59,9 @@ def parse_parametrized(params: List[Dict[str, Any]]) -> List[Mapping[str, Any]]:
                 f'First entry is {", ".join(known_params)} but {", ".join(param_keys)} '
                 "was spotted at {idx} position",
             )
-        param.pop('__line__')
-        parsed_params.append(param)
-    return params
+        parsed_params.append({k: v for k, v in param.items() if not k.startswith("__")})
+
+    return parsed_params
 
 
 class SafeLineLoader(yaml.SafeLoader):
@@ -97,9 +97,9 @@ class YamlTestFile(pytest.File):
             for params in parametrized:
                 if params:
                     test_name_suffix = ",".join(f"{k}={v}" for k, v in params.items())
-                    test_name_suffix = f'[{test_name_suffix}]'
+                    test_name_suffix = f"[{test_name_suffix}]"
                 else:
-                    test_name_suffix = ''
+                    test_name_suffix = ""
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
                 main_file = File(path="main.py", content=pystache.render(raw_test["main"], params))
