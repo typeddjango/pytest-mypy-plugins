@@ -113,7 +113,7 @@ class YamlTestFile(pytest.File):
                 starting_lineno = raw_test["__line__"]
                 extra_environment_variables = parse_environment_variables(raw_test.get("env", []))
                 disable_cache = raw_test.get("disable_cache", False)
-                expected_output_lines = raw_test.get("out", "").split("\n")
+                expected_output_lines = pystache.render(raw_test.get("out", ""), params).split("\n")
                 additional_mypy_config = raw_test.get("mypy_config", "")
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))

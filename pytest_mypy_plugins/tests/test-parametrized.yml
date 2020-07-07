@@ -26,3 +26,19 @@
 
         def test(a: Any, b: Any) -> Any:
           ...
+- case: with_out
+  parametrized:
+    - what: cat
+      rt: builtins.str
+    - what: dog
+      rt: builtins.str
+  main: |
+    animal = '{{ what }}'
+    reveal_type(animal)
+    try:
+      animal / 2
+    except Exception:
+      ...
+  out: |
+    main:2: note: Revealed type is '{{ rt }}'
+    main:4: error: Unsupported operand types for / ("str" and "int")
