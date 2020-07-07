@@ -6,13 +6,11 @@
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 [![Gitter](https://badges.gitter.im/mypy-django/Lobby.svg)](https://gitter.im/mypy-django/Lobby)
 
-
 ## Installation
 
 ```bash
 pip install pytest-mypy-plugins
 ```
-
 
 ## Usage
 
@@ -20,20 +18,28 @@ Examples of a test case:
 
 ```yaml
 # typesafety/test_request.yml
--   case: request_object_has_user_of_type_auth_user_model
-    disable_cache: true
-    main: |
-        from django.http.request import HttpRequest
-        reveal_type(HttpRequest().user)  # N: Revealed type is 'myapp.models.MyUser'
-        # check that other fields work ok
-        reveal_type(HttpRequest().method)  # N: Revealed type is 'Union[builtins.str, None]'
-    files:
-        -   path: myapp/__init__.py
-        -   path: myapp/models.py
-            content: |
-                from django.db import models
-                class MyUser(models.Model):
-                    pass
+- case: request_object_has_user_of_type_auth_user_model
+  disable_cache: true
+  main: |
+    from django.http.request import HttpRequest
+    reveal_type(HttpRequest().user)  # N: Revealed type is 'myapp.models.MyUser'
+    # check that other fields work ok
+    reveal_type(HttpRequest().method)  # N: Revealed type is 'Union[builtins.str, None]'
+  files:
+    - path: myapp/__init__.py
+    - path: myapp/models.py
+      content: |
+        from django.db import models
+        class MyUser(models.Model):
+            pass
+- case: with_params
+  parametrized:
+    - val: 1
+      rt: builtins.int
+    - val: 1.0
+      rt: builtins.float
+  main: |
+    reveal_type({[ val }})  # N: Reveal type is '{{ rt }}'
 ```
 
 Running:
