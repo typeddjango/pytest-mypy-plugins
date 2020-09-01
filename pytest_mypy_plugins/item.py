@@ -53,7 +53,7 @@ def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
         return line
     out_fpath, res_line = line.split(":", 1)
     line = os.path.relpath(out_fpath, start=rootdir) + ":" + res_line
-    return line.strip().replace(".py", "")
+    return line.strip().replace(".py:", ":")
 
 
 class ReturnCodes:
