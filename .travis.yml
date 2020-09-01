@@ -34,7 +34,7 @@ jobs:
     script: 'black --check pytest_mypy_plugins setup.py'
   - name: Lint with isort
     python: 3.7
-    script: 'isort --check --diff'
+    script: 'isort --check --diff .'
 
 before_install: |
   # Upgrade pip, setuptools, and wheel

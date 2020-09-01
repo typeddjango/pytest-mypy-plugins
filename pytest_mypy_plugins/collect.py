@@ -2,14 +2,14 @@ import os
 import platform
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Mapping
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional
 
+import pystache
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
 from py._path.local import LocalPath
-import pystache
 
 from pytest_mypy_plugins import utils
 
