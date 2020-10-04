@@ -175,7 +175,10 @@ class YamlTestItem(pytest.Item):
         assert mypy_executable is not None
 
         # add current directory to path
-        self.environment_variables["PYTHONPATH"] = str(execution_path)
+        self.environment_variables["PYTHONPATH"] = ":".join([os.environ.get("PYTHONPATH", ""), str(execution_path),])
+        self.environment_variables["MYPYPATH"] = ":".join(
+            [os.environ.get("MYPYPATH", ""), os.path.dirname(self.base_ini_fpath),]
+        )
         # Windows requires this to be set, otherwise the interpreter crashes
         if "SYSTEMROOT" in os.environ:
             self.environment_variables["SYSTEMROOT"] = os.environ["SYSTEMROOT"]

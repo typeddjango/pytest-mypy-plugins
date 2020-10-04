@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class File:
-    def __init__(self, path: str, content: str):
+    def __init__(self, path: str, content: str) -> None:
         self.path = path
         self.content = content
 
@@ -26,10 +26,7 @@ class File:
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
     files: List[File] = []
     for test_file in test_files:
-        path = test_file.get("path")
-        if not path:
-            path = "main.py"
-
+        path = test_file.get("path", "main.py")
         file = File(path=path, content=test_file.get("content", ""))
         files.append(file)
     return files

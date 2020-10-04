@@ -117,7 +117,6 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
     maxw = 72  # Maximum number of characters shown
 
     error_message += "Alignment of first line difference:\n"
-    # sys.stderr.write('Alignment of first line difference:\n')
 
     trunc = False
     while s1[:30] == s2[:30]:
@@ -136,23 +135,18 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
 
     # Write a chunk of both lines, aligned.
     error_message += "  E: {}{}\n".format(s1[:maxw], extra)
-    # sys.stderr.write('  E: {}{}\n'.format(s1[:maxw], extra))
     error_message += "  A: {}{}\n".format(s2[:maxw], extra)
-    # sys.stderr.write('  A: {}{}\n'.format(s2[:maxw], extra))
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
     for j in range(min(maxw, max(len(s1), len(s2)))):
         if s1[j : j + 1] != s2[j : j + 1]:
             error_message += "^"
-            # sys.stderr.write('^')  # Difference
             break
         else:
             error_message += " "
-            # sys.stderr.write(' ')  # Equal
     error_message += "\n"
     return error_message
-    # sys.stderr.write('\n')
 
 
 def remove_empty_lines(lines: List[str]) -> List[str]:
