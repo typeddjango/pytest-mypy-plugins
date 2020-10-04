@@ -172,7 +172,7 @@ class YamlTestItem(pytest.Item):
         import distutils.spawn
 
         mypy_executable = distutils.spawn.find_executable("mypy")
-        assert mypy_executable is not None
+        assert mypy_executable is not None, "mypy executable is not found"
 
         # add current directory to path
         self.environment_variables["PYTHONPATH"] = ":".join(
@@ -194,6 +194,7 @@ class YamlTestItem(pytest.Item):
         # Windows requires this to be set, otherwise the interpreter crashes
         if "SYSTEMROOT" in os.environ:
             self.environment_variables["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+
         completed = subprocess.run(
             [mypy_executable, *mypy_cmd_options],
             stdout=subprocess.PIPE,
