@@ -13,7 +13,7 @@ dependencies = [
 
 setup(
     name="pytest-mypy-plugins",
-    version="1.4.0",
+    version="1.5.0",
     description="pytest plugin for writing tests for mypy plugins",
     long_description=readme,
     long_description_content_type="text/markdown",
