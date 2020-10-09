@@ -23,6 +23,17 @@ just execute:
 pytest
 ```
 
+### Paths
+
+The `PYTHONPATH` and `MYPYPATH` environment variables, if set, are passed to `mypy` on invocation.
+This may be helpful if you are testing a local plugin and need to provide an import path to it.
+
+Be aware that when `mypy` is run in a subprocess (the default) the test cases are run in temporary working directories
+where relative paths such as `PYTHONPATH=./my_plugin` do not reference the directory which you are running `pytest` from.
+If you encounter this, consider invoking `pytest` with `--mypy-same-process` or make your paths absolute,
+e.g. `PYTHONPATH=$(pwd)/my_plugin pytest`.
+
+
 ### What is a test case?
 
 In general each test case is just an element in an array written in a properly formatted `YAML` file.
