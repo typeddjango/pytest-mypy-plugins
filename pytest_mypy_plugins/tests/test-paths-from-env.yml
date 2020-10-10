@@ -6,3 +6,12 @@
         reveal_type(a)  # N: Revealed type is 'pair.Pair'
     env:
         - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+
+
+-   case: mypy_path_from_env_with_error
+    main: |
+        from pair import Missing
+    out: |
+      main:1: error: Module 'pair' has no attribute 'Missing'
+    env:
+        - MYPYPATH=./pytest_mypy_plugins/tests/fixtures

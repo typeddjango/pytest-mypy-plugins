@@ -4,8 +4,8 @@ with open("README.md", "r") as f:
     readme = f.read()
 
 dependencies = [
-    "pytest>=5.4.0",
-    "mypy>=0.730",
+    "pytest>=6.0.0",
+    "mypy>=0.790",
     "decorator",
     "pyyaml",
     "pystache>=0.5.4",

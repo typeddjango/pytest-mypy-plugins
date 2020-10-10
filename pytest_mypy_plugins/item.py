@@ -5,16 +5,29 @@ import sys
 import tempfile
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
+import py
 import pytest
 from _pytest._code import ExceptionInfo
-from _pytest._code.code import ReprEntry, ReprFileLocation
+from _pytest._code.code import ReprEntry, ReprFileLocation, TerminalRepr
+from _pytest._io import TerminalWriter
 from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
-from py._io.terminalwriter import TerminalWriter
+
+if TYPE_CHECKING:
+    from _pytest._code.code import _TracebackStyle
 
 from pytest_mypy_plugins import utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
@@ -28,6 +41,9 @@ from pytest_mypy_plugins.utils import (
 
 class TraceLastReprEntry(ReprEntry):
     def toterminal(self, tw: TerminalWriter) -> None:
+        if not self.reprfileloc:
+            return
+
         self.reprfileloc.toterminal(tw)
         for line in self.lines:
             red = line.startswith("E   ")
@@ -56,8 +72,8 @@ def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
     return line.strip().replace(".py:", ":")
 
 
-def maybe_to_abspath(rel_or_abs: str, rootdir: Path) -> str:
-    if os.path.isabs(rel_or_abs):
+def maybe_to_abspath(rel_or_abs: str, rootdir: Optional[Path]) -> str:
+    if rootdir is None or os.path.isabs(rel_or_abs):
         return rel_or_abs
     return str(rootdir / rel_or_abs)
 
@@ -180,10 +196,11 @@ class YamlTestItem(pytest.Item):
         mypy_executable = distutils.spawn.find_executable("mypy")
         assert mypy_executable is not None, "mypy executable is not found"
 
+        rootdir = getattr(getattr(self.parent, "config", None), "rootdir", None)
         # add current directory to path
-        self._collect_python_path(execution_path)
+        self._collect_python_path(rootdir, execution_path)
         # adding proper MYPYPATH variable
-        self._collect_mypy_path()
+        self._collect_mypy_path(rootdir)
 
         # Windows requires this to be set, otherwise the interpreter crashes
         if "SYSTEMROOT" in os.environ:
@@ -307,7 +324,9 @@ class YamlTestItem(pytest.Item):
 
         return mypy_cmd_options
 
-    def repr_failure(self, excinfo: ExceptionInfo) -> str:
+    def repr_failure(
+        self, excinfo: ExceptionInfo[BaseException], style: Optional["_TracebackStyle"] = None
+    ) -> Union[str, TerminalRepr]:
         if excinfo.errisinstance(SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
             # enough context about what happened so that a stack trace is not useful.
@@ -317,9 +336,9 @@ class YamlTestItem(pytest.Item):
         elif excinfo.errisinstance(TypecheckAssertionError):
             # with traceback removed
             exception_repr = excinfo.getrepr(style="short")
-            exception_repr.reprcrash.message = ""
+            exception_repr.reprcrash.message = ""  # type: ignore
             repr_file_location = ReprFileLocation(
-                path=self.fspath, lineno=self.starting_lineno + excinfo.value.lineno, message=""
+                path=self.fspath, lineno=self.starting_lineno + excinfo.value.lineno, message=""  # type: ignore
             )
             repr_tb_entry = TraceLastReprEntry(
                 exception_repr.reprtraceback.reprentries[-1].lines[1:], None, None, repr_file_location, "short"
@@ -329,10 +348,14 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style="native")
 
-    def reportinfo(self) -> Tuple[str, Optional[str], str]:
+    def reportinfo(self) -> Tuple[Union[py.path.local, str], Optional[int], str]:
         return self.fspath, None, self.name
 
-    def _collect_python_path(self, execution_path: Path) -> None:
+    def _collect_python_path(
+        self,
+        rootdir: Optional[Path],
+        execution_path: Path,
+    ) -> None:
         python_path_parts = []
 
         existing_python_path = os.environ.get("PYTHONPATH")
@@ -343,12 +366,12 @@ class YamlTestItem(pytest.Item):
         python_path_key = self.environment_variables.get("PYTHONPATH")
         if python_path_key:
             python_path_parts.append(
-                maybe_to_abspath(python_path_key, self.parent.config.rootdir),
+                maybe_to_abspath(python_path_key, rootdir),
             )
 
         self.environment_variables["PYTHONPATH"] = ":".join(python_path_parts)
 
-    def _collect_mypy_path(self) -> None:
+    def _collect_mypy_path(self, rootdir: Optional[Path]) -> None:
         mypy_path_parts = []
 
         existing_mypy_path = os.environ.get("MYPYPATH")
@@ -359,7 +382,7 @@ class YamlTestItem(pytest.Item):
         mypy_path_key = self.environment_variables.get("MYPYPATH")
         if mypy_path_key:
             mypy_path_parts.append(
-                maybe_to_abspath(mypy_path_key, self.parent.config.rootdir),
+                maybe_to_abspath(mypy_path_key, rootdir),
             )
 
         self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)
