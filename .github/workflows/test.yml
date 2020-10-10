@@ -1,0 +1,42 @@
+name: test
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -r dev-requirements.txt
+    - name: Run tests
+      run: pytest
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        pip install -U pip setuptools wheel
+        pip install -r dev-requirements.txt
+    - name: Run linters
+      run: |
+        mypy .
+        black --check pytest_mypy_plugins setup.py
+        isort --check --diff .
