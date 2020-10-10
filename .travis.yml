@@ -22,6 +22,11 @@ jobs:
     script: |
       set -e
       pytest
+  - name: "run test suite with python 3.9"
+    python: 3.9
+    script: |
+      set -e
+      pytest
 
   - name: "typecheck with mypy"
     python: 3.7

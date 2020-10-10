@@ -13,7 +13,7 @@ dependencies = [
 
 setup(
     name="pytest-mypy-plugins",
-    version="1.5.0",
+    version="1.6.0",
     description="pytest plugin for writing tests for mypy plugins",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -32,5 +32,6 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

@@ -1,0 +1,8 @@
+-   case: mypy_path_from_env
+    main: |
+        from pair import Pair
+
+        a: Pair
+        reveal_type(a)  # N: Revealed type is 'pair.Pair'
+    env:
+        - MYPYPATH=./pytest_mypy_plugins/tests/fixtures

@@ -33,6 +33,19 @@ where relative paths such as `PYTHONPATH=./my_plugin` do not reference the direc
 If you encounter this, consider invoking `pytest` with `--mypy-same-process` or make your paths absolute,
 e.g. `PYTHONPATH=$(pwd)/my_plugin pytest`.
 
+You can also specify `PYTHONPATH`, `MYPYPATH`, or any other environment variable in `env:` section of `yml` spec:
+
+```yml
+- case: mypy_path_from_env
+  main: |
+    from pair import Pair
+
+    instance: Pair
+    reveal_type(instance)  # N: Revealed type is 'pair.Pair'
+  env:
+    - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+```
+
 
 ### What is a test case?
 

@@ -56,6 +56,12 @@ def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
     return line.strip().replace(".py:", ":")
 
 
+def maybe_to_abspath(rel_or_abs: str, rootdir: Path) -> str:
+    if os.path.isabs(rel_or_abs):
+        return rel_or_abs
+    return str(rootdir / rel_or_abs)
+
+
 class ReturnCodes:
     SUCCESS = 0
     FAIL = 1
@@ -175,21 +181,9 @@ class YamlTestItem(pytest.Item):
         assert mypy_executable is not None, "mypy executable is not found"
 
         # add current directory to path
-        self.environment_variables["PYTHONPATH"] = ":".join(
-            [
-                os.environ.get("PYTHONPATH", ""),
-                str(execution_path),
-            ]
-        )
-
+        self._collect_python_path(execution_path)
         # adding proper MYPYPATH variable
-        mypy_path_parts = []
-        existing_mypy_path = os.environ.get("MYPYPATH", "")
-        if existing_mypy_path:
-            mypy_path_parts.append(existing_mypy_path)
-        if self.base_ini_fpath:
-            mypy_path_parts.append(os.path.dirname(self.base_ini_fpath))
-        self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)
+        self._collect_mypy_path()
 
         # Windows requires this to be set, otherwise the interpreter crashes
         if "SYSTEMROOT" in os.environ:
@@ -337,3 +331,37 @@ class YamlTestItem(pytest.Item):
 
     def reportinfo(self) -> Tuple[str, Optional[str], str]:
         return self.fspath, None, self.name
+
+    def _collect_python_path(self, execution_path: Path) -> None:
+        python_path_parts = []
+
+        existing_python_path = os.environ.get("PYTHONPATH")
+        if existing_python_path:
+            python_path_parts.append(existing_python_path)
+        if execution_path:
+            python_path_parts.append(str(execution_path))
+        python_path_key = self.environment_variables.get("PYTHONPATH")
+        if python_path_key:
+            python_path_parts.append(
+                maybe_to_abspath(python_path_key, self.parent.config.rootdir),
+            )
+
+        self.environment_variables["PYTHONPATH"] = ":".join(python_path_parts)
+
+    def _collect_mypy_path(self) -> None:
+        mypy_path_parts = []
+
+        existing_mypy_path = os.environ.get("MYPYPATH")
+        if existing_mypy_path:
+            mypy_path_parts.append(existing_mypy_path)
+
+        if self.base_ini_fpath:
+            mypy_path_parts.append(os.path.dirname(self.base_ini_fpath))
+
+        mypy_path_key = self.environment_variables.get("MYPYPATH")
+        if mypy_path_key:
+            mypy_path_parts.append(
+                maybe_to_abspath(mypy_path_key, self.parent.config.rootdir),
+            )
+
+        self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)
