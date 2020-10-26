@@ -73,6 +73,7 @@ def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
 
 
 def maybe_to_abspath(rel_or_abs: str, rootdir: Optional[Path]) -> str:
+    rel_or_abs = os.path.expandvars(rel_or_abs)
     if rootdir is None or os.path.isabs(rel_or_abs):
         return rel_or_abs
     return str(rootdir / rel_or_abs)
@@ -365,9 +366,8 @@ class YamlTestItem(pytest.Item):
             python_path_parts.append(str(execution_path))
         python_path_key = self.environment_variables.get("PYTHONPATH")
         if python_path_key:
-            python_path_parts.append(
-                maybe_to_abspath(python_path_key, rootdir),
-            )
+            python_path_parts.append(maybe_to_abspath(python_path_key, rootdir))
+            python_path_parts.append(python_path_key)
 
         self.environment_variables["PYTHONPATH"] = ":".join(python_path_parts)
 
@@ -381,8 +381,7 @@ class YamlTestItem(pytest.Item):
             mypy_path_parts.append(os.path.dirname(self.base_ini_fpath))
         mypy_path_key = self.environment_variables.get("MYPYPATH")
         if mypy_path_key:
-            mypy_path_parts.append(
-                maybe_to_abspath(mypy_path_key, rootdir),
-            )
+            mypy_path_parts.append(maybe_to_abspath(mypy_path_key, rootdir))
+            mypy_path_parts.append(mypy_path_key)
 
         self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)

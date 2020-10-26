@@ -1,5 +1,13 @@
 # Version history
 
+
+## Version 1.6.1
+
+### Bugfixes
+
+- Changes how `MYPYPATH` and `PYTHONPATH` are calcualted. We now expand `$PWD` variable and also include relative paths specified in `env:` section
+
+
 ## Version 1.6.0
 
 ### Features

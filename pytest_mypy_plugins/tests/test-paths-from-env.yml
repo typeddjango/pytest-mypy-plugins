@@ -15,3 +15,15 @@
       main:1: error: Module 'pair' has no attribute 'Missing'
     env:
         - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+
+
+-   case: add_mypypath_env_var_to_package_search
+    main: |
+        import extra_module
+    env:
+      - MYPYPATH=./extras
+    files:
+        -   path: extras/extra_module.py
+            content: |
+                def extra_fn():
+                  pass
