@@ -151,6 +151,6 @@ def pytest_addoption(parser: Parser) -> None:
     group.addoption(
         "--mypy-extension-hook",
         type=str,
-        help="Fully qualifield path to the extension hook function, in case you need custom yaml keys. "
+        help="Fully qualified path to the extension hook function, in case you need custom yaml keys. "
         "Has to be top-level.",
     )
