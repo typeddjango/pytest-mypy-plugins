@@ -139,6 +139,7 @@ class YamlTestItem(pytest.Item):
         self.additional_mypy_config = mypy_config
         self.parsed_test_data = parsed_test_data
         self.same_process = self.config.option.mypy_same_process
+        self.test_only_local_stub = self.config.option.mypy_only_local_stub
 
         # config parameters
         self.root_directory = self.config.option.mypy_testing_base
@@ -296,11 +297,12 @@ class YamlTestItem(pytest.Item):
     def prepare_mypy_cmd_options(self, execution_path: Path) -> List[str]:
         mypy_cmd_options = [
             "--show-traceback",
-            "--no-silence-site-packages",
             "--no-error-summary",
             "--no-pretty",
             "--hide-error-context",
         ]
+        if not self.test_only_local_stub:
+            mypy_cmd_options.append("--no-silence-site-packages")
         if not self.disable_cache:
             mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
 

@@ -154,3 +154,8 @@ def pytest_addoption(parser: Parser) -> None:
         help="Fully qualified path to the extension hook function, in case you need custom yaml keys. "
         "Has to be top-level.",
     )
+    group.addoption(
+        "--mypy-only-local-stub",
+        action="store_true",
+        help="mypy will ignore errors from site-packages",
+    )
