@@ -155,7 +155,7 @@ def pytest_addoption(parser: Parser) -> None:
         "Has to be top-level.",
     )
     group.addoption(
-        "--mypy-only-local-stub", 
-        action="store_true", 
+        "--mypy-only-local-stub",
+        action="store_true",
         help="mypy will ignore errors from site-packages",
     )
