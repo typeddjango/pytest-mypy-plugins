@@ -309,7 +309,8 @@ class YamlTestItem(pytest.Item):
         python_version = ".".join([str(part) for part in sys.version_info[:2]])
         mypy_cmd_options.append(f"--python-version={python_version}")
 
-        # merge self.base_ini_fpath and self.additional_mypy_config into one file and copy to the typechecking folder
+        # Merge `self.base_ini_fpath` and `self.additional_mypy_config`
+        # into one file and copy to the typechecking folder:
         mypy_ini_config = ConfigParser()
         if self.base_ini_fpath:
             mypy_ini_config.read(self.base_ini_fpath)

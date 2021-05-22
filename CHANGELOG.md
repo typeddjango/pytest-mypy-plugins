@@ -1,6 +1,13 @@
 # Version history
 
 
+## Version 1.7.0
+
+### Features
+
+- Adds `--mypy-only-local-stub` CLI flag to ignore errors in site-packages
+
+
 ## Version 1.6.1
 
 ### Bugfixes
