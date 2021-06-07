@@ -63,7 +63,7 @@ On top of that, each case must comply to following types:
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html) |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                           |
 
-Appendix to **pseudo** types used above:
+(*) Appendix to **pseudo** types used above:
 
 ```python
 class File:
