@@ -121,7 +121,7 @@ Implementation notes:
 ```yaml
 - case: with_out
   main: |
-    reveal_type('str')
+    reveal_type('abc')
   out: |
     main:1: note: Revealed type is 'builtins.str'
 ```
