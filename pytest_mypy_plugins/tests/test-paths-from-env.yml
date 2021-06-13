@@ -26,4 +26,4 @@
     - path: extras/extra_module.py
       content: |
         def extra_fn():
-          pass
+            pass

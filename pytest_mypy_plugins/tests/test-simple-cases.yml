@@ -1,13 +1,13 @@
 - case: simplest_case
   main: |
-      a = 1
-      b = 'hello'
+    a = 1
+    b = 'hello'
 
-      class MyClass:
-          pass
+    class MyClass:
+        pass
 
-      reveal_type(a)  # N: Revealed type is "builtins.int"
-      reveal_type(b)  # N: Revealed type is "builtins.str"
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(b)  # N: Revealed type is "builtins.str"
 
 
 - case: revealed_type_with_environment
