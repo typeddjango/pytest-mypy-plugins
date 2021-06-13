@@ -1,29 +1,29 @@
--   case: mypy_path_from_env
-    main: |
-        from pair import Pair
+- case: mypy_path_from_env
+  main: |
+    from pair import Pair
 
-        a: Pair
-        reveal_type(a)  # N: Revealed type is 'pair.Pair'
-    env:
-        - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
-
-
--   case: mypy_path_from_env_with_error
-    main: |
-        from pair import Missing
-    out: |
-      main:1: error: Module 'pair' has no attribute 'Missing'
-    env:
-        - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+    a: Pair
+    reveal_type(a)  # N: Revealed type is "pair.Pair"
+  env:
+    - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
 
 
--   case: add_mypypath_env_var_to_package_search
-    main: |
-        import extra_module
-    env:
-      - MYPYPATH=./extras
-    files:
-        -   path: extras/extra_module.py
-            content: |
-                def extra_fn():
-                  pass
+- case: mypy_path_from_env_with_error
+  main: |
+    from pair import Missing
+  out: |
+    main:1: error: Module "pair" has no attribute "Missing"
+  env:
+    - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+
+
+- case: add_mypypath_env_var_to_package_search
+  main: |
+    import extra_module
+  env:
+    - MYPYPATH=./extras
+  files:
+    - path: extras/extra_module.py
+      content: |
+        def extra_fn():
+          pass

@@ -1,81 +1,90 @@
--   case: simplest_case
-    main: |
-        a = 1
-        b = 'hello'
+- case: simplest_case
+  main: |
+      a = 1
+      b = 'hello'
 
-        class MyClass:
+      class MyClass:
+          pass
+
+      reveal_type(a)  # N: Revealed type is "builtins.int"
+      reveal_type(b)  # N: Revealed type is "builtins.str"
+
+
+- case: revealed_type_with_environment
+  main: |
+    a = 1
+    class MyClass:
+        def __init__(self):
             pass
 
-        reveal_type(a)  # N: Revealed type is 'builtins.int'
-        reveal_type(b)  # N: Revealed type is 'builtins.str'
+    b = 'hello'
 
--   case: revealed_type_with_environment
-    main: |
-        a = 1
-        class MyClass:
-            def __init__(self):
-                pass
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(b)  # N: Revealed type is "builtins.str"
+  env:
+    - DJANGO_SETTINGS_MODULE=mysettings
 
-        b = 'hello'
 
-        reveal_type(a)  # N: Revealed type is 'builtins.int'
-        reveal_type(b)  # N: Revealed type is 'builtins.str'
-    env:
-        - DJANGO_SETTINGS_MODULE=mysettings
+- case: revealed_type_with_disabled_cache
+  main: |
+    a = 1
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+  disable_cache: true
 
--   case: revealed_type_with_disabled_cache
-    main: |
-        a = 1
-        reveal_type(a)  # N: Revealed type is 'builtins.int'
-    disable_cache: true
 
--   case: external_output_lines
-    main: |
-        a = 1
-        reveal_type(a)
-    out: |
-        main:2: note: Revealed type is 'builtins.int'
+- case: external_output_lines
+  main: |
+    a = 1
+    reveal_type(a)
+  out: |
+    main:2: note: Revealed type is "builtins.int"
 
--   case: create_files
-    main: |
-        a = 1
-        reveal_type(a)  # N: Revealed type is 'builtins.int'
-    files:
-        -   path: myapp/__init__.py
-        -   path: myapp/models.py
-            content: |
-                from django.db import models
-                class MyModel:
-                    pass
-        -   path: myapp/apps.py
 
--   case: error_case
-    main: |
-        a = 1
-        a.lower()  # E: "int" has no attribute "lower"
+- case: create_files
+  main: |
+    a = 1
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+  files:
+    - path: myapp/__init__.py
+    - path: myapp/models.py
+      content: |
+        from django.db import models
+        class MyModel:
+            pass
+    - path: myapp/apps.py
 
--   case: custom_mypy_config_strict_optional_true_set
-    main: |
-        from typing import Optional
-        a: Optional[int] = None
-        a + 1
-    mypy_config: |
-        strict_optional = False
 
--   case: skip_incorrect_test_case
-    skip: yes
-    main: |
-        a = 1
-        reveal_type(a)  # N: boom!
+- case: error_case
+  main: |
+    a = 1
+    a.lower()  # E: "int" has no attribute "lower"
 
--   case: skip_if_true
-    skip: sys.version_info > (2, 0)
-    main: |
-        a = 1
-        a.lower()  # E: boom!
 
--   case: skip_if_false
-    skip: sys.version_info > (20, 0)
-    main: |
-        a = 1
-        a.lower()  # E: "int" has no attribute "lower"
+- case: custom_mypy_config_strict_optional_true_set
+  main: |
+    from typing import Optional
+    a: Optional[int] = None
+    a + 1
+  mypy_config: |
+    strict_optional = False
+
+
+- case: skip_incorrect_test_case
+  skip: yes
+  main: |
+    a = 1
+    reveal_type(a)  # N: boom!
+
+
+- case: skip_if_true
+  skip: sys.version_info > (2, 0)
+  main: |
+    a = 1
+    a.lower()  # E: boom!
+
+
+- case: skip_if_false
+  skip: sys.version_info < (0, 0)
+  main: |
+    a = 1
+    a.lower()  # E: "int" has no attribute "lower"

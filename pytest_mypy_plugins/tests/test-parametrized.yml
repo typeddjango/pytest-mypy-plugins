@@ -1,4 +1,3 @@
----
 - case: only_main
   parametrized:
     - a: 1
@@ -7,7 +6,9 @@
       revealed_type: builtins.float
   main: |
     a = {{ a }}
-    reveal_type(a)  # N: Revealed type is '{{ revealed_type }}'
+    reveal_type(a)  # N: Revealed type is "{{ revealed_type }}"
+
+
 - case: with_extra
   parametrized:
     - a: 2
@@ -18,7 +19,7 @@
       rt: Any
   main: |
     import foo
-    reveal_type(foo.test({{ a }}, {{ b }}))  # N: Revealed type is '{{ rt }}'
+    reveal_type(foo.test({{ a }}, {{ b }}))  # N: Revealed type is "{{ rt }}"
   files:
     - path: foo.py
       content: |
@@ -26,6 +27,8 @@
 
         def test(a: Any, b: Any) -> Any:
           ...
+
+
 - case: with_out
   parametrized:
     - what: cat
@@ -40,5 +43,5 @@
     except Exception:
       ...
   out: |
-    main:2: note: Revealed type is '{{ rt }}'
+    main:2: note: Revealed type is "{{ rt }}"
     main:4: error: Unsupported operand types for / ("str" and "int")
