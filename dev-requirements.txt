@@ -1,3 +1,5 @@
 black
 isort
+types-decorator
+types-PyYAML
 -e .
