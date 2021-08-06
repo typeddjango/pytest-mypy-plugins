@@ -20,6 +20,7 @@ from typing import (
 )
 
 import pystache
+import regex
 from decorator import contextmanager
 
 
@@ -76,7 +77,18 @@ class OutputMatcher:
     col: Optional[str] = None
 
     def matches(self, actual: str) -> bool:
-        return str(self) == actual
+        if self.regex:
+            pattern = (
+                regex.escape(
+                    f"{self.fname}:{self.lnum}: {self.severity}: "
+                    if self.col is None
+                    else f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: "
+                )
+                + self.message
+            )
+            return regex.match(pattern, actual)
+        else:
+            return str(self) == actual
 
     def __str__(self) -> str:
         if self.col is None:

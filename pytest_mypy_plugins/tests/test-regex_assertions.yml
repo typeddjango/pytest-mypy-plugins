@@ -1,5 +1,4 @@
 - case: expected_message_regex
-  skip: yes
   regex: yes
   main: |
     a = 1
