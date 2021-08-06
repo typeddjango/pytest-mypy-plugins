@@ -52,17 +52,17 @@ You can also specify `PYTHONPATH`, `MYPYPATH`, or any other environment variable
 In general each test case is just an element in an array written in a properly formatted `YAML` file.
 On top of that, each case must comply to following types:
 
-| Property        | Type                                                   | Description                                                                                                     |
-| --------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `case`          | `str`                                                  | Name of the test case, complies to `[a-zA-Z0-9]` pattern                                                        |
-| `main`          | `str`                                                  | Portion of the code as if written in `.py` file                                                                 |
-| `files`         | `Optional[List[File]]=[]`\*                            | List of extra files to simulate imports if needed                                                               |
-| `disable_cache` | `Optional[bool]=False`                                 | Set to `true` disables `mypy` caching                                                                           |
-| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option                                |
-| `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                       |
-| `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html) |
-| `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                           |
-| `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output.                                      |
+| Property        | Type                                                   | Description                                                                                                         |
+| --------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `case`          | `str`                                                  | Name of the test case, complies to `[a-zA-Z0-9]` pattern                                                            |
+| `main`          | `str`                                                  | Portion of the code as if written in `.py` file                                                                     |
+| `files`         | `Optional[List[File]]=[]`\*                            | List of extra files to simulate imports if needed                                                                   |
+| `disable_cache` | `Optional[bool]=False`                                 | Set to `true` disables `mypy` caching                                                                               |
+| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option                                    |
+| `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                           |
+| `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html)     |
+| `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
+| `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output. Defaults to "no", i.e. matches full text.|
 
 (*) Appendix to **pseudo** types used above:
 
