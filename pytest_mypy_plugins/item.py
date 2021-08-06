@@ -34,7 +34,7 @@ from pytest_mypy_plugins.collect import File, YamlTestFile
 from pytest_mypy_plugins.utils import (
     OutputMatcher,
     TypecheckAssertionError,
-    assert_string_arrays_equal,
+    assert_expected_matched_actual,
     capture_std_streams,
     fname_to_module,
 )
@@ -280,7 +280,7 @@ class YamlTestItem(pytest.Item):
                 for line in mypy_output.splitlines():
                     output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
                     output_lines.append(output_line)
-                assert_string_arrays_equal(expected=self.expected_output, actual=output_lines)
+                assert_expected_matched_actual(expected=self.expected_output, actual=output_lines)
         finally:
             temp_dir.cleanup()
             # remove created modules and all their dependants from cache

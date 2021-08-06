@@ -219,22 +219,17 @@ def sorted_by_file_and_line(lines: List[str]) -> List[str]:
     return sorted(lines, key=extract_parts_as_tuple)
 
 
-def sorted_output_matchers_by_file_and_line(lines: List[OutputMatcher]) -> List[OutputMatcher]:
-    return sorted(lines, key=lambda om: (om.fname, om.lnum))
-
-
-def assert_string_arrays_equal(expected: List[OutputMatcher], actual: List[str]) -> None:
+def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[str]) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
     """
-    expected = sorted_output_matchers_by_file_and_line(expected)
+    expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
     actual = sorted_by_file_and_line(remove_empty_lines(actual))
 
     actual = remove_common_prefix(actual)
     error_message = ""
 
-    # TODO here!
     if not all(e.matches(a) for e, a in zip(expected, actual)):
         num_skip_start = _num_skipped_prefix_lines(expected, actual)
         num_skip_end = _num_skipped_suffix_lines(expected, actual)
@@ -280,7 +275,7 @@ def assert_string_arrays_equal(expected: List[OutputMatcher], actual: List[str])
                 if len(a) > width:
                     error_message += "..."
             error_message += "\n"
-        if actual == []:
+        if not actual:
             error_message += "  (empty)\n"
         if num_skip_end > 0:
             error_message += "  ...\n"
@@ -300,8 +295,7 @@ def assert_string_arrays_equal(expected: List[OutputMatcher], actual: List[str])
 
         first_failure = expected[first_diff]
         if first_failure:
-            lineno = first_failure.lnum
-            raise TypecheckAssertionError(error_message=f"Invalid output: \n{error_message}", lineno=lineno)
+            raise TypecheckAssertionError(error_message=f"Invalid output: \n{error_message}", lineno=first_failure.lnum)
 
 
 def extract_output_matchers_from_comments(fname: str, input_lines: List[str], regex: bool) -> List[OutputMatcher]:
