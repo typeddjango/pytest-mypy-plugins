@@ -62,6 +62,7 @@ On top of that, each case must comply to following types:
 | `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                       |
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html) |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                           |
+| `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output.                                      |
 
 (*) Appendix to **pseudo** types used above:
 
@@ -124,6 +125,17 @@ Implementation notes:
     reveal_type('abc')
   out: |
     main:1: note: Revealed type is 'builtins.str'
+```
+
+#### 4. Regular expressions in expectations
+
+```yaml
+- case: with_out
+  regex: yes
+  main: |
+    reveal_type('abc')
+  out: |
+    main:1: note: .*str.*
 ```
 
 ## Options
