@@ -1,0 +1,9 @@
+- case: expected_message_regex
+  skip: yes
+  regex: yes
+  main: |
+    a = 1
+    b = 'hello'
+
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(b)  # N: .*str.*

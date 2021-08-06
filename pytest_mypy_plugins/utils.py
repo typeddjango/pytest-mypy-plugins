@@ -6,9 +6,20 @@ import io
 import os
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
+import pystache
 from decorator import contextmanager
 
 
@@ -55,6 +66,31 @@ def fname_to_module(fpath: Path, root_path: Path) -> Optional[str]:
 MIN_LINE_LENGTH_FOR_ALIGNMENT = 5
 
 
+@dataclass
+class OutputMatcher:
+    fname: str
+    lnum: int
+    severity: str
+    message: str
+    regex: bool
+    col: Optional[str] = None
+
+    def matches(self, actual: str) -> bool:
+        return str(self) == actual
+
+    def __str__(self) -> str:
+        if self.col is None:
+            return f"{self.fname}:{self.lnum}: {self.severity}: {self.message}"
+        else:
+            return f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
+
+    def __format__(self, format_spec: str) -> str:
+        return format_spec.format(str(self))
+
+    def __len__(self) -> int:
+        return len(str(self))
+
+
 class TypecheckAssertionError(AssertionError):
     def __init__(self, error_message: Optional[str] = None, lineno: int = 0) -> None:
         self.error_message = error_message or ""
@@ -81,16 +117,16 @@ def remove_common_prefix(lines: List[str]) -> List[str]:
     return cleaned_lines
 
 
-def _num_skipped_prefix_lines(a1: List[str], a2: List[str]) -> int:
+def _num_skipped_prefix_lines(a1: List[OutputMatcher], a2: List[str]) -> int:
     num_eq = 0
-    while num_eq < min(len(a1), len(a2)) and a1[num_eq] == a2[num_eq]:
+    while num_eq < min(len(a1), len(a2)) and a1[num_eq].matches(a2[num_eq]):
         num_eq += 1
     return max(0, num_eq - 4)
 
 
-def _num_skipped_suffix_lines(a1: List[str], a2: List[str]) -> int:
+def _num_skipped_suffix_lines(a1: List[OutputMatcher], a2: List[str]) -> int:
     num_eq = 0
-    while num_eq < min(len(a1), len(a2)) and a1[-num_eq - 1] == a2[-num_eq - 1]:
+    while num_eq < min(len(a1), len(a2)) and a1[-num_eq - 1].matches(a2[-num_eq - 1]):
         num_eq += 1
     return max(0, num_eq - 4)
 
@@ -171,18 +207,23 @@ def sorted_by_file_and_line(lines: List[str]) -> List[str]:
     return sorted(lines, key=extract_parts_as_tuple)
 
 
-def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
+def sorted_output_matchers_by_file_and_line(lines: List[OutputMatcher]) -> List[OutputMatcher]:
+    return sorted(lines, key=lambda om: (om.fname, om.lnum))
+
+
+def assert_string_arrays_equal(expected: List[OutputMatcher], actual: List[str]) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
     """
-    expected = sorted_by_file_and_line(remove_empty_lines(expected))
+    expected = sorted_output_matchers_by_file_and_line(expected)
     actual = sorted_by_file_and_line(remove_empty_lines(actual))
 
     actual = remove_common_prefix(actual)
     error_message = ""
 
-    if expected != actual:
+    # TODO here!
+    if not all(e.matches(a) for e, a in zip(expected, actual)):
         num_skip_start = _num_skipped_prefix_lines(expected, actual)
         num_skip_end = _num_skipped_suffix_lines(expected, actual)
 
@@ -200,13 +241,13 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
         width = 100
 
         for i in range(num_skip_start, len(expected) - num_skip_end):
-            if i >= len(actual) or expected[i] != actual[i]:
+            if i >= len(actual) or not expected[i].matches(actual[i]):
                 if first_diff < 0:
                     first_diff = i
                 error_message += "  {:<45} (diff)".format(expected[i])
             else:
                 e = expected[i]
-                error_message += "  " + e[:width]
+                error_message += "  " + str(e)[:width]
                 if len(e) > width:
                     error_message += "..."
             error_message += "\n"
@@ -219,7 +260,7 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
             error_message += "  ...\n"
 
         for j in range(num_skip_start, len(actual) - num_skip_end):
-            if j >= len(expected) or expected[j] != actual[j]:
+            if j >= len(expected) or not expected[j].matches(actual[j]):
                 error_message += "  {:<45} (diff)".format(actual[j])
             else:
                 a = actual[j]
@@ -240,33 +281,26 @@ def assert_string_arrays_equal(expected: List[str], actual: List[str]) -> None:
         ):
             # Display message that helps visualize the differences between two
             # long lines.
-            error_message = _add_aligned_message(expected[first_diff], actual[first_diff], error_message)
+            error_message = _add_aligned_message(str(expected[first_diff]), actual[first_diff], error_message)
 
         if len(expected) == 0:
             raise TypecheckAssertionError(f"Output is not expected: \n{error_message}")
 
         first_failure = expected[first_diff]
         if first_failure:
-            lineno = int(first_failure.split(" ")[0].strip(":").split(":")[1])
+            lineno = first_failure.lnum
             raise TypecheckAssertionError(error_message=f"Invalid output: \n{error_message}", lineno=lineno)
 
 
-def build_output_line(fname: str, lnum: int, severity: str, message: str, col: Optional[str] = None) -> str:
-    if col is None:
-        return f"{fname}:{lnum + 1}: {severity}: {message}"
-    else:
-        return f"{fname}:{lnum + 1}:{col}: {severity}: {message}"
-
-
-def extract_errors_from_comments(fname: str, input_lines: List[str]) -> List[str]:
+def extract_output_matchers_from_comments(fname: str, input_lines: List[str], regex: bool) -> List[OutputMatcher]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
     The result is lines like 'fnam:line: error: message'.
     """
     fname = fname.replace(".py", "")
-    output_lines = []
-    for lnum, line in enumerate(input_lines):
+    matchers = []
+    for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
         for possible_err_comment in line.split(" # ")[1:]:
             m = re.search(r"^([ENW]):((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip())
@@ -278,8 +312,39 @@ def extract_errors_from_comments(fname: str, input_lines: List[str]) -> List[str
                 elif m.group(1) == "W":
                     severity = "warning"
                 col = m.group("col")
-                output_lines.append(build_output_line(fname, lnum, severity, message=m.group("message"), col=col))
-    return output_lines
+                matchers.append(
+                    OutputMatcher(fname, index + 1, severity, message=m.group("message"), regex=regex, col=col)
+                )
+    return matchers
+
+
+def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> List[OutputMatcher]:
+    matchers = []
+    for line in pystache.render(out, params).split("\n"):
+        match = re.search(
+            r"^(?P<fname>.*):(?P<lnum>\d*): (?P<severity>.*):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
+        )
+        if match:
+            if match.group("severity") == "E":
+                severity = "error"
+            elif match.group("severity") == "N":
+                severity = "note"
+            elif match.group("severity") == "W":
+                severity = "warning"
+            else:
+                severity = match.group("severity")
+            col = match.group("col")
+            matchers.append(
+                OutputMatcher(
+                    match.group("fname"),
+                    int(match.group("lnum")),
+                    severity,
+                    message=match.group("message"),
+                    regex=regex,
+                    col=col,
+                )
+            )
+    return matchers
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:

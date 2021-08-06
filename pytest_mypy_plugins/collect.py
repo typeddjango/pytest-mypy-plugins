@@ -101,16 +101,21 @@ class YamlTestFile(pytest.File):
                 test_name = f"{test_name_prefix}{test_name_suffix}"
                 main_file = File(path="main.py", content=pystache.render(raw_test["main"], params))
                 test_files = [main_file] + parse_test_files(raw_test.get("files", []))
+                regex = raw_test.get("regex", False)
 
-                output_from_comments = []
+                expected_output = []
                 for test_file in test_files:
-                    output_lines = utils.extract_errors_from_comments(test_file.path, test_file.content.split("\n"))
-                    output_from_comments.extend(output_lines)
+                    output_lines = utils.extract_output_matchers_from_comments(
+                        test_file.path, test_file.content.split("\n"), regex=regex
+                    )
+                    expected_output.extend(output_lines)
 
                 starting_lineno = raw_test["__line__"]
                 extra_environment_variables = parse_environment_variables(raw_test.get("env", []))
                 disable_cache = raw_test.get("disable_cache", False)
-                expected_output_lines = pystache.render(raw_test.get("out", ""), params).split("\n")
+                expected_output.extend(
+                    utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
+                )
                 additional_mypy_config = raw_test.get("mypy_config", "")
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))
@@ -122,7 +127,7 @@ class YamlTestFile(pytest.File):
                         starting_lineno=starting_lineno,
                         environment_variables=extra_environment_variables,
                         disable_cache=disable_cache,
-                        expected_output_lines=output_from_comments + expected_output_lines,
+                        expected_output=expected_output,
                         parsed_test_data=raw_test,
                         mypy_config=additional_mypy_config,
                     )

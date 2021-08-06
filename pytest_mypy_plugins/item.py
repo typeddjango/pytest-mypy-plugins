@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 from pytest_mypy_plugins import utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
 from pytest_mypy_plugins.utils import (
+    OutputMatcher,
     TypecheckAssertionError,
     assert_string_arrays_equal,
     capture_std_streams,
@@ -124,7 +125,7 @@ class YamlTestItem(pytest.Item):
         *,
         files: List[File],
         starting_lineno: int,
-        expected_output_lines: List[str],
+        expected_output: List[OutputMatcher],
         environment_variables: Dict[str, Any],
         disable_cache: bool,
         mypy_config: str,
@@ -134,7 +135,7 @@ class YamlTestItem(pytest.Item):
         self.files = files
         self.environment_variables = environment_variables
         self.disable_cache = disable_cache
-        self.expected_output_lines = expected_output_lines
+        self.expected_output = expected_output
         self.starting_lineno = starting_lineno
         self.additional_mypy_config = mypy_config
         self.parsed_test_data = parsed_test_data
@@ -279,7 +280,7 @@ class YamlTestItem(pytest.Item):
                 for line in mypy_output.splitlines():
                     output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
                     output_lines.append(output_line)
-                assert_string_arrays_equal(expected=self.expected_output_lines, actual=output_lines)
+                assert_string_arrays_equal(expected=self.expected_output, actual=output_lines)
         finally:
             temp_dir.cleanup()
             # remove created modules and all their dependants from cache
