@@ -6,3 +6,11 @@
 
     reveal_type(a)  # N: Revealed type is "builtins.int"
     reveal_type(b)  # N: .*str.*
+
+- case: expected_message_regex_with_out
+  regex: yes
+  main: |
+    a = 'abc'
+    reveal_type(a)
+  out: |
+    main:2: note: .*str.*

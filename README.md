@@ -130,12 +130,13 @@ Implementation notes:
 #### 4. Regular expressions in expectations
 
 ```yaml
-- case: with_out
+- case: expected_message_regex_with_out
   regex: yes
   main: |
-    reveal_type('abc')
+    a = 'abc'
+    reveal_type(a)
   out: |
-    main:1: note: .*str.*
+    main:2: note: .*str.*
 ```
 
 ## Options
