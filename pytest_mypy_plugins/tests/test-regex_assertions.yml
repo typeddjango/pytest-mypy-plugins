@@ -20,3 +20,23 @@
   main: |
     a = 'hello'
     reveal_type(a)  # NR: .*str.*
+
+- case: rexex_but_not_turned_on
+  expect_fail: yes
+  main: |
+    a = 'hello'
+    reveal_type(a)  # N: .*str.*
+
+- case: rexex_but_turned_off
+  expect_fail: yes
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # N: .*str.*
+
+- case: regext_does_not_match
+  expect_fail: yes
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*banana.*
