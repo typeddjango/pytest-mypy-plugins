@@ -8,3 +8,9 @@
   main: |
     a = 'hello'
     reveal_type(a)  # N: .*str.*
+
+- case: regext_does_not_match
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*banana.*

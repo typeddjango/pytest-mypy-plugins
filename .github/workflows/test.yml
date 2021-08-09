@@ -28,7 +28,7 @@ jobs:
     - name: Run tests
       run: pytest --ignore-glob="*.shouldfail.yml"
     - name: Run test with expected failures
-      run: pytest pytest_mypy_plugins/tests/*.shouldfail.yml 2>&1 | grep "4 failed"
+      run: pytest pytest_mypy_plugins/tests/*.shouldfail.yml 2>&1 | grep "5 failed"
 
   lint:
     runs-on: ubuntu-latest
