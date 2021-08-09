@@ -309,7 +309,9 @@ def extract_output_matchers_from_comments(fname: str, input_lines: List[str], re
     for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
         for possible_err_comment in line.split(" # ")[1:]:
-            match = re.search(r"^([ENW])(?P<regex>[R]):((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip())
+            match = re.search(
+                r"^([ENW])(?P<regex>[R])?:((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip()
+            )
             if match:
                 if match.group(1) == "E":
                     severity = "error"

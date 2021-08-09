@@ -4,6 +4,7 @@
     reveal_type(a)  # N: .*str.*
 
 - case: rexex_but_turned_off
+  regex: no
   main: |
     a = 'hello'
     reveal_type(a)  # N: .*str.*
