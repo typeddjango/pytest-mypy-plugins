@@ -26,9 +26,7 @@ jobs:
         pip install -U pip setuptools wheel
         pip install -r dev-requirements.txt
     - name: Run tests
-      run: pytest --ignore-glob="*.shouldfail.yml"
-    - name: Run test with expected failures
-      run: pytest pytest_mypy_plugins/tests/*.shouldfail.yml 2>&1 | grep "5 failed"
+      run: pytest 
 
   lint:
     runs-on: ubuntu-latest

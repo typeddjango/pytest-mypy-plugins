@@ -101,6 +101,7 @@ class YamlTestFile(pytest.File):
                 test_name = f"{test_name_prefix}{test_name_suffix}"
                 main_file = File(path="main.py", content=pystache.render(raw_test["main"], params))
                 test_files = [main_file] + parse_test_files(raw_test.get("files", []))
+                expect_fail = raw_test.get("expect_fail", False)
                 regex = raw_test.get("regex", False)
 
                 expected_output = []
@@ -130,6 +131,7 @@ class YamlTestFile(pytest.File):
                         expected_output=expected_output,
                         parsed_test_data=raw_test,
                         mypy_config=additional_mypy_config,
+                        expect_fail=expect_fail,
                     )
 
     def _eval_skip(self, skip_if: str) -> bool:
