@@ -302,29 +302,42 @@ def extract_output_matchers_from_comments(fname: str, input_lines: List[str], re
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
-    The result is lines like 'fnam:line: error: message'.
+    The result is a list pf output matchers
     """
     fname = fname.replace(".py", "")
     matchers = []
     for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
         for possible_err_comment in line.split(" # ")[1:]:
-            m = re.search(r"^([ENW]):((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip())
-            if m:
-                if m.group(1) == "E":
+            match = re.search(r"^([ENW])(?P<regex>[R]):((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip())
+            if match:
+                if match.group(1) == "E":
                     severity = "error"
-                elif m.group(1) == "N":
+                elif match.group(1) == "N":
                     severity = "note"
-                elif m.group(1) == "W":
+                elif match.group(1) == "W":
                     severity = "warning"
-                col = m.group("col")
+                else:
+                    severity = match.group(1)
+                col = match.group("col")
                 matchers.append(
-                    OutputMatcher(fname, index + 1, severity, message=m.group("message"), regex=regex, col=col)
+                    OutputMatcher(
+                        fname,
+                        index + 1,
+                        severity,
+                        message=match.group("message"),
+                        regex=regex or bool(match.group("regex")),
+                        col=col,
+                    )
                 )
     return matchers
 
 
 def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> List[OutputMatcher]:
+    """Transform output lines such as 'function:9: E: message'
+
+    The result is a list of output matchers
+    """
     matchers = []
     for line in pystache.render(out, params).split("\n"):
         match = re.search(

@@ -14,3 +14,9 @@
     reveal_type(a)
   out: |
     main:2: note: .*str.*
+
+- case: expected_single_message_regex
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*str.*

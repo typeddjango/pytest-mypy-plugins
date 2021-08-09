@@ -139,6 +139,15 @@ Implementation notes:
     main:2: note: .*str.*
 ```
 
+#### 5. Regular expressions specific lines of output.
+
+```yaml
+- case: expected_single_message_regex
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*str.*
+```
+
 ## Options
 
 ```
