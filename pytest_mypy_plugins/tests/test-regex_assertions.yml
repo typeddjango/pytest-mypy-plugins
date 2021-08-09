@@ -1,0 +1,22 @@
+- case: expected_message_regex
+  regex: yes
+  main: |
+    a = 1
+    b = 'hello'
+
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(b)  # N: .*str.*
+
+- case: expected_message_regex_with_out
+  regex: yes
+  main: |
+    a = 'abc'
+    reveal_type(a)
+  out: |
+    main:2: note: .*str.*
+
+- case: expected_single_message_regex
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*str.*
