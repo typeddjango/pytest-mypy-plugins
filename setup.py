@@ -8,7 +8,7 @@ dependencies = [
     "mypy>=0.790",
     "decorator",
     "pyyaml",
-    "chevron~=0.14",
+    "chevron",
 ]
 
 setup(
