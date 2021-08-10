@@ -4,7 +4,6 @@ import sys
 import tempfile
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional
 
-import pystache
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
@@ -99,7 +98,8 @@ class YamlTestFile(pytest.File):
                     test_name_suffix = ""
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
-                main_file = File(path="main.py", content=pystache.render(raw_test["main"], params))
+                main_content = utils.render_template(template=raw_test["main"], data=params)
+                main_file = File(path="main.py", content=main_content)
                 test_files = [main_file] + parse_test_files(raw_test.get("files", []))
                 expect_fail = raw_test.get("expect_fail", False)
                 regex = raw_test.get("regex", False)

@@ -19,7 +19,7 @@ from typing import (
     Union,
 )
 
-import pystache
+import chevron
 import regex
 from decorator import contextmanager
 
@@ -341,7 +341,8 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     The result is a list of output matchers
     """
     matchers = []
-    for line in pystache.render(out, params).split("\n"):
+    lines = render_template(out, params).split("\n")
+    for line in lines:
         match = re.search(
             r"^(?P<fname>.*):(?P<lnum>\d*): (?P<severity>.*):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
         )
@@ -366,6 +367,10 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
                 )
             )
     return matchers
+
+
+def render_template(template: str, data: Mapping[str, Any]) -> str:
+    return chevron.render(template=template, data={k: v if v is not None else "None" for k, v in data.items()})
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
