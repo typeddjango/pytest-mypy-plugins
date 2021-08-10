@@ -2,6 +2,7 @@ import os
 import platform
 import sys
 import tempfile
+from collections import ChainMap
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional
 
 import pytest
@@ -83,7 +84,10 @@ class YamlTestFile(pytest.File):
         if not isinstance(parsed_file, list):
             raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
 
-        for raw_test in parsed_file:
+        templates = ChainMap(*[t["message-templates"] for t in parsed_file if "message-templates" in t])
+
+        raw_tests = [c for c in parsed_file if "case" in c]
+        for raw_test in raw_tests:
             test_name_prefix = raw_test["case"]
             if " " in test_name_prefix:
                 raise ValueError(f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed.")
@@ -98,7 +102,7 @@ class YamlTestFile(pytest.File):
                     test_name_suffix = ""
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
-                main_content = utils.render_template(template=raw_test["main"], data=params)
+                main_content = utils.render_template(template=raw_test["main"], data=ChainMap(params, templates))
                 main_file = File(path="main.py", content=main_content)
                 test_files = [main_file] + parse_test_files(raw_test.get("files", []))
                 expect_fail = raw_test.get("expect_fail", False)
