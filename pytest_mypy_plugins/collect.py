@@ -84,7 +84,7 @@ class YamlTestFile(pytest.File):
         if not isinstance(parsed_file, list):
             raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
 
-        templates = ChainMap(*[t["message-templates"] for t in parsed_file if "message-templates" in t])
+        templates = ChainMap(*[t["placeholders"] for t in parsed_file if "placeholders" in t])
 
         raw_tests = [c for c in parsed_file if "case" in c]
         for raw_test in raw_tests:

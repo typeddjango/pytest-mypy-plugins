@@ -1,0 +1,19 @@
+- case: test_placeholder
+  main: |
+    a = 1
+    b = 'hello'
+
+    reveal_type(a)  # N: {{ reveal }} "builtins.int"
+    reveal_type(b)  # NR: {{ reveal }} {{ str }}
+
+- case: test_using_parametrized_for_templates
+  parametrized:
+     - rtype: "Revealed type is"
+  main: |
+    a = 1
+
+    reveal_type(a)  # N: {{ rtype }} "builtins.int"
+
+- placeholders:
+    reveal: "Revealed type is"
+    str: ".*str.*"
