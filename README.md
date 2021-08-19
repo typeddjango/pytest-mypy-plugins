@@ -130,7 +130,12 @@ All you have to do, add the following line at the top of your YAML file:
 # yaml-language-server: $schema=https://raw.githubusercontent.com/typeddjango/pytest-mypy-plugins/master/pytest_mypy_plugins/schema.json
 ```
 
-### Example
+### Placeholders
+
+In addition to test cases, re-usable placeholders can be defined in a top level element names `placeholders`, pieces of
+text which can be reused in any test cases within the YAML test file - see example below.
+
+### Examples
 
 #### 1. Inline type expectations
 
