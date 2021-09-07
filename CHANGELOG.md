@@ -1,6 +1,19 @@
 # Version history
 
 
+## Version 1.8.0
+
+## Features
+
+- Adds `regex` support in matching test output
+- Adds a flag for expected failures
+- Replaces deprecated `pystache` with `chevron`
+
+## Misc
+
+- Updates `mypy`
+
+
 ## Version 1.7.0
 
 ### Features
