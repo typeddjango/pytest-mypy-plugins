@@ -10,7 +10,7 @@ dependencies = [
     "pyyaml",
     "chevron",
     "regex",
-    "dataclasses ; python_version<'3.7'"
+    "dataclasses ; python_version<'3.7'",
 ]
 
 setup(
