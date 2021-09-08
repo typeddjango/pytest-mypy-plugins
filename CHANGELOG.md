@@ -1,7 +1,14 @@
 # Version history
 
 
-## Version 1.8.0
+## Version 1.9.1
+
+## Bugfixes
+
+- Fixes that `regex` and `dataclasses` dependencies were not listed in `setup.py`
+
+
+## Version 1.9.0
 
 ## Features
 
@@ -12,6 +19,11 @@
 ## Misc
 
 - Updates `mypy`
+
+
+## Version 1.8.0
+
+We missed this released by mistake.
 
 
 ## Version 1.7.0
