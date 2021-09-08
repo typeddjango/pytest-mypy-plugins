@@ -9,6 +9,7 @@ dependencies = [
     "decorator",
     "pyyaml",
     "chevron",
+    "regex",
 ]
 
 setup(
