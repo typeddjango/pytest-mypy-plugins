@@ -9,6 +9,8 @@ dependencies = [
     "decorator",
     "pyyaml",
     "chevron",
+    "regex",
+    "dataclasses ; python_version<'3.7'",
 ]
 
 setup(
