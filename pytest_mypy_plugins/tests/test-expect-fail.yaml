@@ -1,20 +1,20 @@
 - case: failing_case_1
   expect_fail: true
   main: |
-    reveal_type(42)  # N: Revealed type is "builtins.str"
-    reveal_type("foo")  # N: Revealed type is "builtins.int"
+    reveal_type(42)  # N: Revealed type is "Literal['foo']?"
+    reveal_type("foo")  # N: Revealed type is "Literal[42]?"
 
 - case: failing_case_2
   expect_fail: true
   main: |
     reveal_type(42)
-    reveal_type("foo")  # N: Revealed type is "builtins.str"
+    reveal_type("foo")  # N: Revealed type is "Literal['foo']?"
 
 - case: failing_case_3
   expect_fail: true
   main: |
-    reveal_type(42)  # N: Revealed type is "builtins.int"
-    reveal_type(b)
+    reveal_type(42)  # N: Revealed type is "Literal[42]?"
+    reveal_type("foo")
 
 - case: failing_case_4
   expect_fail: true
