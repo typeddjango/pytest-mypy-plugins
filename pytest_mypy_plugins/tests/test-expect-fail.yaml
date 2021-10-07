@@ -1,39 +1,53 @@
-- case: failing_case_1
+- case: all_mismatched
   expect_fail: true
   main: |
     reveal_type(42)  # N: Revealed type is "Literal['foo']?"
     reveal_type("foo")  # N: Revealed type is "Literal[42]?"
 
-- case: failing_case_2
+- case: missing_message_then_match
   expect_fail: true
   main: |
     reveal_type(42)
     reveal_type("foo")  # N: Revealed type is "Literal['foo']?"
 
-- case: failing_case_3
+- case: match_then_missing_message
   expect_fail: true
   main: |
     reveal_type(42)  # N: Revealed type is "Literal[42]?"
     reveal_type("foo")
 
-- case: failing_case_4
+- case: missing_message
   expect_fail: true
   main: |
     42 + "foo"
 
-- case: failing_case_5
+- case: mismatched_message_inline
   expect_fail: true
   main: |
     1 + 1  # E: Unsupported operand types for + ("int" and "int")
 
-- case: failing_case_6
+- case: mismatched_messaged_in_out
   expect_fail: true
   main: |
     1 + "foo"
   out: |
     main:1: error: Unsupported operand types for + ("int" and "int")
 
-- case: failing_case_7
+- case: match_then_mismatched_message
   expect_fail: true
   main: |
-    42 + "foo"
+    reveal_type(42)  # N: Revealed type is "Literal[42]?"
+    reveal_type("foo")  # N: Revealed type is "builtins.int"
+
+- case: mismatched_message_then_match
+  expect_fail: true
+  main: |
+    reveal_type("foo")  # N: Revealed type is "builtins.int"
+    reveal_type(42)  # N: Revealed type is "Literal[42]?"
+
+- case: match_between_mismatched_messages
+  expect_fail: true
+  main: |
+    reveal_type(42.0)  # N: Revealed type is "builtins.float"
+    reveal_type("foo")  # N: Revealed type is "builtins.int"
+    reveal_type(42)  # N: Revealed type is "Literal[42]?"
