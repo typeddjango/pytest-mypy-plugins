@@ -1,0 +1,39 @@
+- case: failing_case_1
+  expect_fail: true
+  main: |
+    reveal_type(42)  # N: Revealed type is "builtins.str"
+    reveal_type("foo")  # N: Revealed type is "builtins.int"
+
+- case: failing_case_2
+  expect_fail: true
+  main: |
+    reveal_type(42)
+    reveal_type("foo")  # N: Revealed type is "builtins.str"
+
+- case: failing_case_3
+  expect_fail: true
+  main: |
+    reveal_type(42)  # N: Revealed type is "builtins.int"
+    reveal_type(b)
+
+- case: failing_case_4
+  expect_fail: true
+  main: |
+    42 + "foo"
+
+- case: failing_case_5
+  expect_fail: true
+  main: |
+    1 + 1  # E: Unsupported operand types for + ("int" and "int")
+
+- case: failing_case_6
+  expect_fail: true
+  main: |
+    1 + "foo"
+  out: |
+    main:1: error: Unsupported operand types for + ("int" and "int")
+
+- case: failing_case_7
+  expect_fail: true
+  main: |
+    42 + "foo"
