@@ -237,8 +237,8 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
         first_diff_line = min(diff_lines.keys())
         last_diff_line = max(diff_lines.keys())
 
-        expected_message_lines = []
-        actual_message_lines = []
+        expected_message_lines = [] if first_diff_line == 0 else ["  ..."]
+        actual_message_lines = [] if first_diff_line == 0 else ["  ..."]
 
         for i in range(first_diff_line, last_diff_line + 1):
             if i in diff_lines:
@@ -252,6 +252,10 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
                 expected_line, actual_line = expected[i], actual[i]
                 actual_message_lines.append(format_matched_line(actual_line))
                 expected_message_lines.append(format_matched_line(str(expected_line)))
+
+        if last_diff_line < len(actual) - 1 and last_diff_line < len(expected) - 1:
+            expected_message_lines.append("  ...")
+            actual_message_lines.append("  ...")
 
         error_message = "Actual:\n{}\nExpected:\n{}\n".format(
             format_error_lines(actual_message_lines), format_error_lines(expected_message_lines)
