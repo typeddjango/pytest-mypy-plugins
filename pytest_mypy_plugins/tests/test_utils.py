@@ -1,5 +1,4 @@
 # encoding=utf-8
-import re
 from typing import List, NamedTuple
 
 import pytest
@@ -50,7 +49,6 @@ expect_matched_actual_data = [
             '''  E: ...ed type is "Literal['foo']?"''',
             '''  A: ...ed type is "Literal[42]?"''',
             """                            ^""",
-            "",
         ],
     ),
     ExpectMatchedActualTestData(
@@ -180,7 +178,9 @@ def test_assert_expected_matched_actual_failures(
     source_lines: List[str], actual_lines: List[str], expected_message_lines: List[str]
 ) -> None:
     expected: List[OutputMatcher] = extract_output_matchers_from_comments("main", source_lines, False)
-    expected_error_message = re.escape("\n".join(expected_message_lines))
+    expected_error_message = "\n".join(expected_message_lines)
 
-    with pytest.raises(TypecheckAssertionError, match=expected_error_message):
+    with pytest.raises(TypecheckAssertionError) as e:
         assert_expected_matched_actual(expected, actual_lines)
+
+    assert e.value.error_message.strip() == expected_error_message.strip()
