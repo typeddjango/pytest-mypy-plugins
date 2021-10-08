@@ -178,7 +178,7 @@ expect_matched_actual_data = [
 @pytest.mark.parametrize("source_lines,actual_lines,expected_message_lines", expect_matched_actual_data)
 def test_assert_expected_matched_actual_failures(
     source_lines: List[str], actual_lines: List[str], expected_message_lines: List[str]
-):
+) -> None:
     expected: List[OutputMatcher] = extract_output_matchers_from_comments("main", source_lines, False)
     expected_error_message = re.escape("\n".join(expected_message_lines))
 
