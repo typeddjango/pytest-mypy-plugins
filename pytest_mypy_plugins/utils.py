@@ -256,7 +256,7 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
         first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
 
         failure_reason = (
-            "Invalid output" if first_diff_actual and first_diff_expected is None else "Output is not expected"
+            "Output is not expected" if actual and not expected else "Invalid output"
         )
 
         if actual_message_lines and expected_message_lines:
