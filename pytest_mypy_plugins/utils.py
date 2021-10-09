@@ -194,15 +194,15 @@ def remove_empty_lines(lines: List[str]) -> List[str]:
 
 
 def sorted_by_file_and_line(lines: List[str]) -> List[str]:
-    def extract_parts_as_tuple(line: str) -> Tuple[str, int, str]:
+    def extract_parts_as_tuple(line: str) -> Tuple[str, int]:
         if len(line.split(":", maxsplit=2)) < 3:
-            return "", 0, ""
+            return "", 0
 
-        fname, line_number, contents = line.split(":", maxsplit=2)
+        fname, line_number, _ = line.split(":", maxsplit=2)
         try:
-            return fname, int(line_number), contents
+            return fname, int(line_number)
         except ValueError:
-            return "", 0, ""
+            return "", 0
 
     return sorted(lines, key=extract_parts_as_tuple)
 
