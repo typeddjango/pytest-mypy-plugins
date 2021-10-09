@@ -62,6 +62,7 @@ On top of that, each case must comply to following types:
 | `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                           |
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html)     |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
+| `expect_fail`   | `bool`                                                 | Mark test case as an expected failure, like [`@pytest.mark.xfail`](https://docs.pytest.org/en/stable/skipping.html) |
 | `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output. Defaults to "no", i.e. matches full text.|
 
 (*) Appendix to **pseudo** types used above:
