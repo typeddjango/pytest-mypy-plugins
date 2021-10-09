@@ -9,6 +9,7 @@ from pytest_mypy_plugins.utils import (
     TypecheckAssertionError,
     assert_expected_matched_actual,
     extract_output_matchers_from_comments,
+    sorted_by_file_and_line,
 )
 
 
@@ -184,3 +185,35 @@ def test_assert_expected_matched_actual_failures(
         assert_expected_matched_actual(expected, actual_lines)
 
     assert e.value.error_message.strip() == expected_error_message.strip()
+
+
+@pytest.mark.parametrize(
+    "input_lines",
+    [
+        [
+            '''main:12: error: No overload variant of "f" matches argument type "List[int]"''',
+            """main:12: note: Possible overload variants:""",
+            """main:12: note:     def f(x: int) -> int""",
+            """main:12: note:     def f(x: str) -> str""",
+        ],
+        [
+            '''main_a:12: error: No overload variant of "g" matches argument type "List[int]"''',
+            '''main_b:12: error: No overload variant of "f" matches argument type "List[int]"''',
+            """main_b:12: note: Possible overload variants:""",
+            """main_a:12: note:     def g(b: int) -> int""",
+            """main_a:12: note:     def g(a: int) -> int""",
+            """main_b:12: note:     def f(x: int) -> int""",
+            """main_b:12: note:     def f(x: str) -> str""",
+        ],
+    ],
+)
+def test_sorted_by_file_and_line_is_stable(input_lines: List[str]) -> None:
+    def lines_for_file(lines: List[str], fname: str) -> List[str]:
+        prefix = f"{fname}:"
+        return [line for line in lines if line.startswith(prefix)]
+
+    files = sorted({line.split(":", maxsplit=1)[0] for line in input_lines})
+    sorted_lines = sorted_by_file_and_line(input_lines)
+
+    for f in files:
+        assert lines_for_file(sorted_lines, f) == lines_for_file(input_lines, f)
