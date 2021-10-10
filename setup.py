@@ -28,6 +28,9 @@ setup(
     entry_points={"pytest11": ["pytest-mypy-plugins = pytest_mypy_plugins.collect"]},
     install_requires=dependencies,
     python_requires=">=3.6",
+    package_data={
+        "pytest_mypy_plugins": ["py.typed"],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
