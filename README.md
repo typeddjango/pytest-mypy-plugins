@@ -167,10 +167,12 @@ mypy-tests:
                         Base directory for tests to use
   --mypy-ini-file=MYPY_INI_FILE
                         Which .ini file to use as a default config for tests
-  --mypy-same-process
-                        Now, to help with various issues in django-stubs, it runs every single test in the subprocess mypy call.
-                        Some debuggers cannot attach to subprocess, so enable this flag to make mypy check happen in the same process.
-                        (Could cause cache issues)
+  --mypy-same-process   Run in the same process. Useful for debugging, will create problems with import cache
+  --mypy-extension-hook=MYPY_EXTENSION_HOOK
+                        Fully qualified path to the extension hook function, in case you need custom yaml keys. Has to be top-level.
+  --mypy-only-local-stub
+                        mypy will ignore errors from site-packages
+
 ```
 
 ## Further reading
