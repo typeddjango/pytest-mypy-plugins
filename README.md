@@ -94,7 +94,12 @@ Implementation notes:
   [`eval`](https://docs.python.org/3/library/functions.html#eval). It is advised to take a peek and
   learn about how `eval` works.
 
-### Example
+### Placeholders
+
+In addition to test cases, re-usable placeholders can be defined in a top level element names `placeholders`, pieces of 
+text which can be reused in any test cases within the YAML test file - see example below.
+
+### Examples
 
 #### 1. Inline type expectations
 
@@ -157,6 +162,22 @@ Implementation notes:
   main: |
     a = 'hello'
     reveal_type(a)  # NR: .*str.*
+```
+
+#### 6. Placeholders
+
+```yaml
+- case: test_placeholder
+  main: |
+    a = 1
+    b = 'hello'
+
+    reveal_type(a)  # N: {{ reveal }} "builtins.int"
+    reveal_type(b)  # NR: {{ reveal }} {{ str }}
+
+- placeholders:
+    reveal: "Revealed type is"
+    str: ".*str.*"
 ```
 
 ## Options
