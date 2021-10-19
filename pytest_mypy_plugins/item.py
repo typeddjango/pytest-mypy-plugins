@@ -174,16 +174,6 @@ class YamlTestItem(pytest.Item):
             ):
                 parent_dir.rmdir()
 
-    def find_dependent_paths(self, path: Path) -> List[Path]:
-        py_module = ".".join(path.with_suffix("").parts)
-        dependants = []
-        for dirpath, _, filenames in os.walk(self.incremental_cache_dir):
-            for filename in filenames:
-                path = Path(dirpath) / filename
-                if f'"{py_module}"' in path.read_text():
-                    dependants.append(path.with_suffix("").with_suffix(""))
-        return dependants
-
     def typecheck_in_new_subprocess(
         self, execution_path: Path, mypy_cmd_options: List[Any]
     ) -> Tuple[int, Tuple[str, str]]:
@@ -284,15 +274,11 @@ class YamlTestItem(pytest.Item):
 
         finally:
             temp_dir.cleanup()
-            # remove created modules and all their dependants from cache
+            # remove created modules
             if not self.disable_cache:
                 for file in self.files:
                     path = Path(file.path)
                     self.remove_cache_files(path.with_suffix(""))
-
-                    dependants = self.find_dependent_paths(path)
-                    for dependant in dependants:
-                        self.remove_cache_files(dependant)
 
         assert not os.path.exists(temp_dir.name)
 
