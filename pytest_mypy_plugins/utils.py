@@ -9,17 +9,7 @@ import sys
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
 import chevron
 import regex

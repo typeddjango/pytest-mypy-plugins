@@ -2,7 +2,7 @@ import os
 import platform
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional, Set
 
 import pytest
 import yaml
@@ -44,7 +44,7 @@ def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any
         return [{}]
 
     parsed_params: List[Mapping[str, Any]] = []
-    known_params = None
+    known_params: Optional[Set[str]] = None
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
         if not known_params:

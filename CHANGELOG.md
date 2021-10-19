@@ -1,6 +1,16 @@
 # Version history
 
 
+## Version 1.9.2
+
+### Bugfixes
+
+- Removes usages of `distutils` #71
+- Fixes multiline messages #66
+- Fixes that empty output test cases was almost ignored #63
+- Fixes output formatting for expected messages #66
+
+
 ## Version 1.9.1
 
 ## Bugfixes
