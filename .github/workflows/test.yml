@@ -45,4 +45,4 @@ jobs:
       run: |
         mypy .
         black --check pytest_mypy_plugins setup.py
-        isort --check --diff .
+        isort --profile=black --check --diff .
