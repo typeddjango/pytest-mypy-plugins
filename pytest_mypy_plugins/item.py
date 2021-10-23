@@ -230,8 +230,14 @@ class YamlTestItem(pytest.Item):
         try:
             temp_dir = tempfile.TemporaryDirectory(prefix="pytest-mypy-", dir=self.root_directory)
 
+        except (FileNotFoundError, PermissionError, NotADirectoryError) as e:
+
+            raise TypecheckAssertionError(
+                error_message=f"Testing base directory {self.root_directory} must exist and be writable"
+            ) from e
+
+        try:
             execution_path = Path(temp_dir.name)
-            assert execution_path.exists()
 
             with utils.cd(execution_path):
                 # extension point for derived packages
