@@ -2,4 +2,5 @@ black
 isort
 types-decorator
 types-PyYAML
+types-setuptools
 -e .

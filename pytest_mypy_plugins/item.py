@@ -5,7 +5,17 @@ import sys
 import tempfile
 from configparser import ConfigParser
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    no_type_check,
+)
 
 import py
 import pytest
@@ -346,8 +356,11 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style="native")
 
-    def reportinfo(self) -> Tuple[Union[py.path.local, str], Optional[int], str]:
-        return self.fspath, None, self.name
+    @no_type_check
+    def reportinfo(self) -> Tuple[Union[py.path.local, Path, str], Optional[int], str]:
+        # To support both Pytest 6.x and 7.x
+        path = getattr(self, "path", None) or getattr(self, "fspath")
+        return path, None, self.name
 
     def _collect_python_path(
         self,
