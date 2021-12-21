@@ -158,7 +158,6 @@ if pkg_resources.parse_version(pytest.__version__) >= pkg_resources.parse_versio
             return YamlTestFile.from_parent(parent, path=file_path, fspath=None)
         return None
 
-
 else:
 
     def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:  # type: ignore[misc]
