@@ -25,6 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
+        pip install -U "pytest==${{ matrix.pytest-version }}"
         pip install -e .
     - name: Run tests
       run: pytest
@@ -42,7 +43,6 @@ jobs:
       run: |
         pip install -U pip setuptools wheel
         pip install -r dev-requirements.txt
-        pip install -U ${{ matrix.pytest-version }}
     - name: Run linters
       run: |
         mypy .
