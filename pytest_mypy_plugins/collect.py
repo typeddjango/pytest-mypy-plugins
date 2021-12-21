@@ -1,9 +1,20 @@
 import os
+import pathlib
 import platform
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+)
 
+import pkg_resources
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
@@ -76,7 +87,9 @@ class YamlTestFile(pytest.File):
     def collect(self) -> Iterator["YamlTestItem"]:
         from pytest_mypy_plugins.item import YamlTestItem
 
-        parsed_file = yaml.load(stream=self.fspath.read_text("utf8"), Loader=SafeLineLoader)
+        # To support both Pytest 6.x and 7.x
+        path = getattr(self, "path", None) or getattr(self, "fspath")
+        parsed_file = yaml.load(stream=path.read_text("utf8"), Loader=SafeLineLoader)
         if parsed_file is None:
             return
 
@@ -138,10 +151,19 @@ class YamlTestFile(pytest.File):
         return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
 
 
-def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
-    if path.ext in {".yaml", ".yml"} and path.basename.startswith(("test-", "test_")):
-        return YamlTestFile.from_parent(parent, fspath=path)
-    return None
+if pkg_resources.parse_version(pytest.__version__) < pkg_resources.parse_version("7.0.0rc1"):
+
+    def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
+        if path.ext in {".yaml", ".yml"} and path.basename.startswith(("test-", "test_")):
+            return YamlTestFile.from_parent(parent, fspath=path)
+        return None
+
+else:
+
+    def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:
+        if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
+            return YamlTestFile.from_parent(parent, path=file_path)
+        return None
 
 
 def pytest_addoption(parser: Parser) -> None:
