@@ -3,16 +3,7 @@ import pathlib
 import platform
 import sys
 import tempfile
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Set,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional, Set
 
 import pkg_resources
 import pytest
