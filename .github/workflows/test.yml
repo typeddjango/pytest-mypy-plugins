@@ -25,8 +25,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
-        pip install -U "pytest${{ matrix.pytest-version }}"
         pip install -e .
+        # Force correct `pytest` version for different envs:
+        pip install -U "pytest${{ matrix.pytest-version }}"
     - name: Run tests
       run: pytest
 
