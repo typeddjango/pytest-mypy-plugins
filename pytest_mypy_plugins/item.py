@@ -310,9 +310,6 @@ class YamlTestItem(pytest.Item):
         if not self.disable_cache:
             mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
 
-        python_version = ".".join([str(part) for part in sys.version_info[:2]])
-        mypy_cmd_options.append(f"--python-version={python_version}")
-
         # Merge `self.base_ini_fpath` and `self.additional_mypy_config`
         # into one file and copy to the typechecking folder:
         mypy_ini_config = ConfigParser()
