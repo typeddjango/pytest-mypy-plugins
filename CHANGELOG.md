@@ -1,6 +1,13 @@
 # Version history
 
 
+## Version 1.9.3
+
+### Bugfixes
+
+- Fixes `DeprecationWarning` for using `py.LocalPath` for `pytest>=7.0` #89
+
+
 ## Version 1.9.2
 
 ### Bugfixes
