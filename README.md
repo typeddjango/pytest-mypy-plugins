@@ -125,7 +125,7 @@ Implementation notes:
     - val: 1.0
       rt: builtins.float
   main: |
-    reveal_type({[ val }})  # N: Revealed type is '{{ rt }}'
+    reveal_type({{ val }})  # N: Revealed type is '{{ rt }}'
 ```
 
 #### 3. Longer type expectations
