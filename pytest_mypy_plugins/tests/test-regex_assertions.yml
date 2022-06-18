@@ -15,6 +15,20 @@
   out: |
     main:2: note: .*str.*
 
+- case: regex_with_out_does_not_hang
+  expect_fail: yes
+  regex: yes
+  main: |
+    'abc'.split(4)
+  out: |
+    main:1: error: Argument 1 to "split" of "str" has incompatible type "int"; expected "Optional[str]"
+
+- case: regex_with_comment_does_not_hang
+  expect_fail: yes
+  regex: yes
+  main: |
+    a = 'abc'.split(4)  # E: Argument 1 to "split" of "str" has incompatible type "int"; expected "Optional[str]"
+
 - case: expected_single_message_regex
   regex: no
   main: |
@@ -34,7 +48,7 @@
     a = 'hello'
     reveal_type(a)  # N: .*str.*
 
-- case: regext_does_not_match
+- case: regex_does_not_match
   expect_fail: yes
   regex: no
   main: |
