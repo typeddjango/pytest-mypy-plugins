@@ -144,6 +144,8 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
 
     error_message += "Alignment of first line difference:\n"
 
+    assert s1 != s2
+
     trunc = False
     while s1[:30] == s2[:30]:
         s1 = s1[10:]
@@ -260,7 +262,9 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
             format_error_lines(actual_message_lines), format_error_lines(expected_message_lines)
         )
 
-        if (
+        if expected_line and expected_line.regex:
+            error_message += "The actual output does not match the expected regex."
+        elif (
             first_diff_actual is not None
             and first_diff_expected is not None
             and (
