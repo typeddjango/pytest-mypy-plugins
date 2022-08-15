@@ -13,8 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
-        pytest-version: ["~=6.2", "==7.0.0rc1"]  # TODO: enable `~=7.0`
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        pytest-version: ["~=6.2", "~=7.1"]
 
     steps:
     - uses: actions/checkout@v3

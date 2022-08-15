@@ -384,8 +384,6 @@ class YamlTestItem(pytest.Item):
         existing_mypy_path = os.environ.get("MYPYPATH")
         if existing_mypy_path:
             mypy_path_parts.append(existing_mypy_path)
-        if self.base_ini_fpath:
-            mypy_path_parts.append(os.path.dirname(self.base_ini_fpath))
         mypy_path_key = self.environment_variables.get("MYPYPATH")
         if mypy_path_key:
             mypy_path_parts.append(maybe_to_abspath(mypy_path_key, rootdir))

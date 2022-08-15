@@ -53,7 +53,7 @@ You can also specify `PYTHONPATH`, `MYPYPATH`, or any other environment variable
     instance: Pair
     reveal_type(instance)  # N: Revealed type is 'pair.Pair'
   env:
-    - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+    - MYPYPATH=../fixtures
 ```
 
 
