@@ -1,6 +1,15 @@
 # Version history
 
 
+## Version 1.10.0
+
+### Features
+
+- Changes how `mypy>=0.970` handles `MYPYPATH`
+- Bumps minimal `mypy` version to `mypy>=0.970`
+- Drops `python3.6` support
+
+
 ## Version 1.9.3
 
 ### Bugfixes
