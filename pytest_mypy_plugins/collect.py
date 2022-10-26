@@ -6,11 +6,11 @@ import tempfile
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional, Set
 
 import pkg_resources
+import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
-from py._path.local import LocalPath
 
 from pytest_mypy_plugins import utils
 
@@ -151,7 +151,7 @@ if pkg_resources.parse_version(pytest.__version__) >= pkg_resources.parse_versio
 
 else:
 
-    def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:  # type: ignore[misc]
+    def pytest_collect_file(path: py.path.local, parent: Node) -> Optional[YamlTestFile]:  # type: ignore[misc]
         if path.ext in {".yaml", ".yml"} and path.basename.startswith(("test-", "test_")):
             return YamlTestFile.from_parent(parent, fspath=path)
         return None
