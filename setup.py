@@ -10,12 +10,11 @@ dependencies = [
     "pyyaml",
     "chevron",
     "regex",
-    "dataclasses ; python_version<'3.7'",
 ]
 
 setup(
     name="pytest-mypy-plugins",
-    version="1.10.0",
+    version="1.10.1",
     description="pytest plugin for writing tests for mypy plugins",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -36,7 +35,6 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
