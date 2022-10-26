@@ -1,11 +1,14 @@
 # Version history
 
+
 ## Version 1.10.1
 
 ### Bugfixes
 
+- Removes unused depenencies for `python < 3.7`
 - Fixes compatibility with pytest 7.2, broken due to a private import from
   `py._path`.
+
 
 ## Version 1.10.0
 

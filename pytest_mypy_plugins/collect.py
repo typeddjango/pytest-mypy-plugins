@@ -3,7 +3,17 @@ import pathlib
 import platform
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+)
 
 import pkg_resources
 import py.path
@@ -63,7 +73,7 @@ def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any
 
 
 class SafeLineLoader(yaml.SafeLoader):
-    def construct_mapping(self, node: yaml.Node, deep: bool = False) -> None:
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> Dict[Hashable, Any]:
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
