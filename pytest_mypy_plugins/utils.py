@@ -380,15 +380,3 @@ def cd(path: Union[str, Path]) -> Iterator[None]:
         yield
     finally:
         os.chdir(prev_cwd)
-
-
-@contextmanager
-def capture_std_streams() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
-    """Context manager to temporarily capture stdout and stderr.
-
-    Returns ``(stdout, stderr)``.
-    """
-    out = io.StringIO()
-    err = io.StringIO()
-    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-        yield out, err

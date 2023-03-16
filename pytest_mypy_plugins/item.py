@@ -1,4 +1,5 @@
 import importlib
+import io
 import os
 import subprocess
 import sys
@@ -8,10 +9,10 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Dict,
     List,
     Optional,
+    TextIO,
     Tuple,
     Union,
     no_type_check,
@@ -36,7 +37,6 @@ from pytest_mypy_plugins.utils import (
     OutputMatcher,
     TypecheckAssertionError,
     assert_expected_matched_actual,
-    capture_std_streams,
     fname_to_module,
 )
 
@@ -87,7 +87,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def run_mypy_typechecking(cmd_options: List[str]) -> Optional[Union[str, int]]:
+def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO) -> Optional[Union[str, int]]:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -95,7 +95,7 @@ def run_mypy_typechecking(cmd_options: List[str]) -> Optional[Union[str, int]]:
 
     def flush_errors(new_messages: List[str], serious: bool) -> None:
         error_messages.extend(new_messages)
-        f = sys.stderr if serious else sys.stdout
+        f = stderr if serious else stdout
         try:
             for msg in new_messages:
                 f.write(msg + "\n")
@@ -104,7 +104,7 @@ def run_mypy_typechecking(cmd_options: List[str]) -> Optional[Union[str, int]]:
             sys.exit(ReturnCodes.FATAL_ERROR)
 
     try:
-        build.build(sources, options, flush_errors=flush_errors, fscache=fscache)
+        build.build(sources, options, flush_errors=flush_errors, fscache=fscache, stdout=stdout, stderr=stderr)
 
     except SystemExit as sysexit:
         return sysexit.code
@@ -224,10 +224,15 @@ class YamlTestItem(pytest.Item):
             # add current directory to path
             sys.path.insert(0, str(execution_path))
 
-            with capture_std_streams() as (stdout, stderr):
-                return_code = run_mypy_typechecking(mypy_cmd_options)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
 
-            return return_code, (stdout.getvalue(), stderr.getvalue())
+            with stdout, stderr:
+                return_code = run_mypy_typechecking(mypy_cmd_options, stdout=stdout, stderr=stderr)
+                stdout_value = stdout.getvalue()
+                stderr_value = stderr.getvalue()
+
+            return return_code, (stdout_value, stderr_value)
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
