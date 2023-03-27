@@ -45,3 +45,5 @@
   out: |
     main:2: note: Revealed type is "{{ rt }}"
     main:4: error: Unsupported operand types for / ("str" and "int")
+  mypy_config: |
+    hide_error_codes = True

@@ -107,7 +107,7 @@ def run_mypy_typechecking(cmd_options: List[str]) -> int:
         build.build(sources, options, flush_errors=flush_errors, fscache=fscache)
 
     except SystemExit as sysexit:
-        return sysexit.code
+        return sysexit.code if isinstance(sysexit.code, int) else 1
     finally:
         fscache.flush()
 
@@ -241,7 +241,6 @@ class YamlTestItem(pytest.Item):
             temp_dir = tempfile.TemporaryDirectory(prefix="pytest-mypy-", dir=self.root_directory)
 
         except (FileNotFoundError, PermissionError, NotADirectoryError) as e:
-
             raise TypecheckAssertionError(
                 error_message=f"Testing base directory {self.root_directory} must exist and be writable"
             ) from e

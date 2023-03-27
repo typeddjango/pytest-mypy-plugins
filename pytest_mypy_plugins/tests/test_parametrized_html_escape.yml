@@ -1,0 +1,11 @@
+- case: gt_in_rt
+  parametrized:
+    - val: bool
+      rt: def (builtins.object =) -> builtins.bool
+  main: |
+    reveal_type({{ val }})  # N: Revealed type is "{{ rt }}"
+
+
+- case: gt_in_comment
+  main: |
+    reveal_type(bool)  # N: Revealed type is "def (builtins.object =) -> builtins.bool"

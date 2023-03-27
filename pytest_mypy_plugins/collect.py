@@ -77,7 +77,7 @@ class SafeLineLoader(yaml.SafeLoader):
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
-        for (title_node, contents_node) in node.value:
+        for title_node, contents_node in node.value:
             if title_node.value == "main":
                 starting_line = title_node.start_mark.line + 1
         mapping["__line__"] = starting_line

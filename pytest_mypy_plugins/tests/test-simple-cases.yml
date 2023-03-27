@@ -58,6 +58,8 @@
   main: |
     a = 1
     a.lower()  # E: "int" has no attribute "lower"
+  mypy_config: |
+    hide_error_codes = True
 
 
 - case: custom_mypy_config_strict_optional_true_set
@@ -88,6 +90,8 @@
   main: |
     a = 1
     a.lower()  # E: "int" has no attribute "lower"
+  mypy_config: |
+    hide_error_codes = True
 
 - case: fail_if_message_does_not_match
   expect_fail: yes
