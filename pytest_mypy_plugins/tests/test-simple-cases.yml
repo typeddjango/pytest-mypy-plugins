@@ -57,7 +57,7 @@
 - case: error_case
   main: |
     a = 1
-    a.lower()  # E: "int" has no attribute "lower"
+    a.lower()  # E: "int" has no attribute "lower"  [attr-defined]
 
 
 - case: custom_mypy_config_strict_optional_true_set
@@ -87,7 +87,7 @@
   skip: sys.version_info < (0, 0)
   main: |
     a = 1
-    a.lower()  # E: "int" has no attribute "lower"
+    a.lower()  # E: "int" has no attribute "lower"  [attr-defined]
 
 - case: fail_if_message_does_not_match
   expect_fail: yes

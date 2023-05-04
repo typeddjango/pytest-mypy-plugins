@@ -44,4 +44,4 @@
       ...
   out: |
     main:2: note: Revealed type is "{{ rt }}"
-    main:4: error: Unsupported operand types for / ("str" and "int")
+    main:4: error: Unsupported operand types for / ("str" and "int")  [operator]
