@@ -87,7 +87,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def run_mypy_typechecking(cmd_options: List[str]) -> int:
+def run_mypy_typechecking(cmd_options: List[str]) -> Optional[Union[str, int]]:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -215,7 +215,7 @@ class YamlTestItem(pytest.Item):
 
     def typecheck_in_same_process(
         self, execution_path: Path, mypy_cmd_options: List[Any]
-    ) -> Tuple[int, Tuple[str, str]]:
+    ) -> Tuple[Optional[Union[str, int]], Tuple[str, str]]:
         with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
             # add custom environment variables
             for key, val in self.environment_variables.items():
@@ -241,7 +241,6 @@ class YamlTestItem(pytest.Item):
             temp_dir = tempfile.TemporaryDirectory(prefix="pytest-mypy-", dir=self.root_directory)
 
         except (FileNotFoundError, PermissionError, NotADirectoryError) as e:
-
             raise TypecheckAssertionError(
                 error_message=f"Testing base directory {self.root_directory} must exist and be writable"
             ) from e

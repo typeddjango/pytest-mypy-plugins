@@ -3,7 +3,7 @@
     import extra_module
     extra_module.extra_fn()
 
-    extra_module.missing()  # E: Module has no attribute "missing"
+    extra_module.missing()  # E: Module has no attribute "missing"  [attr-defined]
   env:
     - MYPYPATH=../extras
   files:
