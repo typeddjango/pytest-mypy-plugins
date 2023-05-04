@@ -1,6 +1,14 @@
 # Version history
 
 
+## Version 1.11.0
+
+### Features
+
+- Adds `python3.11` support and promise about `python3.12` support
+- Removes `pkg_resources` to use `packaging` instead
+
+
 ## Version 1.10.1
 
 ### Bugfixes

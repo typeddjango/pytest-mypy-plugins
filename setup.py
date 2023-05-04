@@ -4,7 +4,7 @@ with open("README.md", "r") as f:
     readme = f.read()
 
 dependencies = [
-    "pytest>=6.0.0",
+    "pytest>=6.2.0",
     "mypy>=0.970",
     "decorator",
     "pyyaml",
@@ -15,7 +15,7 @@ dependencies = [
 
 setup(
     name="pytest-mypy-plugins",
-    version="1.10.1",
+    version="1.11.0",
     description="pytest plugin for writing tests for mypy plugins",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -40,6 +40,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Typing :: Typed",
     ],
 )
