@@ -10,6 +10,7 @@ dependencies = [
     "pyyaml",
     "chevron",
     "regex",
+    "packaging",
 ]
 
 setup(
