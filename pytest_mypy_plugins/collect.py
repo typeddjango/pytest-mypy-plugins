@@ -15,12 +15,12 @@ from typing import (
     Set,
 )
 
-import pkg_resources
 import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
+from packaging.version import Version
 
 from pytest_mypy_plugins import utils
 
@@ -152,7 +152,7 @@ class YamlTestFile(pytest.File):
         return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
 
 
-if pkg_resources.parse_version(pytest.__version__) >= pkg_resources.parse_version("7.0.0rc1"):
+if Version(pytest.__version__) >= Version("7.0.0rc1"):
 
     def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:
         if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
