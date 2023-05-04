@@ -15,12 +15,12 @@ from typing import (
     Set,
 )
 
-from packaging.version import Version
 import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
+from packaging.version import Version
 
 from pytest_mypy_plugins import utils
 
