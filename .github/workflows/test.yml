@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
         # TODO: remove `7.1` in the next release
         pytest-version: ["~=6.2", "~=7.1", "~=7.2"]
 
