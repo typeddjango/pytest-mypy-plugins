@@ -1,6 +1,13 @@
 # Version history
 
 
+## Version 1.11.1
+
+### Bugfixes
+
+- Adds `tests/` subfolder to `sdist` package
+
+
 ## Version 1.11.0
 
 ### Features
