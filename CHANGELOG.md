@@ -1,6 +1,13 @@
 # Version history
 
 
+## WIP
+
+### Bugfixes
+
+- Also include `mypy.ini` and `pytest.ini` to `sdist` package
+
+
 ## Version 1.11.1
 
 ### Bugfixes
