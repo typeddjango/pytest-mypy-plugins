@@ -8,7 +8,7 @@ dependencies = [
     "mypy>=0.970",
     "decorator",
     "pyyaml",
-    "chevron",
+    "Jinja2",
     "regex",
     "packaging",
 ]
