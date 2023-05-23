@@ -11,9 +11,11 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
-import chevron
+import jinja2
 import regex
 from decorator import contextmanager
+
+_rendering_env = jinja2.Environment()
 
 
 @contextmanager
@@ -352,7 +354,8 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
 
 
 def render_template(template: str, data: Mapping[str, Any]) -> str:
-    return chevron.render(template=template, data={k: v if v is not None else "None" for k, v in data.items()})
+    t: jinja2.environment.Template = _rendering_env.from_string(template)
+    return t.render({k: v if v is not None else "None" for k, v in data.items()})
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
