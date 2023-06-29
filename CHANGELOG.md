@@ -1,7 +1,13 @@
 # Version history
 
 
-## WIP
+## 2.0.0
+
+### Features
+
+- Use `jinja2` instead of `chevron` for templating
+- Allow parametrizing `mypy_config` field in tests
+- Bump minimal `mypy` and `pytest` versions
 
 ### Bugfixes
 
