@@ -131,7 +131,7 @@ class YamlTestFile(pytest.File):
                 expected_output.extend(
                     utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
                 )
-                additional_mypy_config = raw_test.get("mypy_config", "")
+                additional_mypy_config = utils.render_template(template=raw_test.get("mypy_config", ""), data=params)
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))
                 if not skip:

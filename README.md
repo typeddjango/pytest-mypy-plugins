@@ -128,6 +128,11 @@ Implementation notes:
     reveal_type({{ val }})  # N: Revealed type is '{{ rt }}'
 ```
 
+Properties that you can parametrize:
+- `main`
+- `mypy_config`
+- `out`
+
 #### 3. Longer type expectations
 
 ```yaml
