@@ -3,6 +3,10 @@
 
 ## WIP
 
+### Features
+
+- Add `tox.ini` file
+
 ### Bugfixes
 
 - Add `requirements.txt` to `sdist` package

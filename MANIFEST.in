@@ -1,4 +1,5 @@
 include mypy.ini
 include pytest.ini
 include requirements.txt
+include tox.ini
 graft pytest_mypy_plugins/tests
