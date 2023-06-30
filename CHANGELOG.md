@@ -1,6 +1,13 @@
 # Version history
 
 
+## WIP
+
+### Bugfixes
+
+- Add `requirements.txt` to `sdist` package
+
+
 ## 2.0.0
 
 ### Features
