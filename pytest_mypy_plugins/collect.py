@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 
-@dataclass(slots=True)
+@dataclass
 class File:
     path: str
     content: str

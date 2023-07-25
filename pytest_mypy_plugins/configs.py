@@ -36,7 +36,7 @@ def join_toml_configs(
         # useful for overrides further.
         toml_config = tomlkit.document()
 
-    if "tool" not in toml_config or "mypy" not in toml_config["tool"]:
+    if "tool" not in toml_config or "mypy" not in toml_config["tool"]:  # type: ignore[operator]
         tool = tomlkit.table(is_super_table=True)
         tool.append("mypy", tomlkit.table())
         toml_config.append("tool", tool)
@@ -46,8 +46,8 @@ def join_toml_configs(
             additional_mypy_config = f"{_TOML_TABLE_NAME}\n{dedent(additional_mypy_config)}"
 
         additional_data = tomlkit.parse(additional_mypy_config)
-        toml_config["tool"]["mypy"].update(
-            additional_data["tool"]["mypy"].value.items(),
+        toml_config["tool"]["mypy"].update(  # type: ignore[index, union-attr]
+            additional_data["tool"]["mypy"].value.items(),  # type: ignore[index]
         )
 
     mypy_config_file_path = execution_path / "pyproject.toml"
@@ -55,5 +55,5 @@ def join_toml_configs(
         # We don't want the whole config file, because it can contain
         # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
         f.write(f"{_TOML_TABLE_NAME}\n")
-        f.write(dedent(toml_config["tool"]["mypy"].as_string()))
+        f.write(dedent(toml_config["tool"]["mypy"].as_string()))  # type: ignore[index]
     return str(mypy_config_file_path)

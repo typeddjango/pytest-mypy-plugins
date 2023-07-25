@@ -28,7 +28,7 @@ def execution_path(tmpdir_factory: pytest.TempdirFactory) -> Path:
     return Path(tmpdir_factory.mktemp("testproject", numbered=True))
 
 
-_AssertFileContents = Callable[[Optional[str]], None]
+_AssertFileContents = Callable[[Optional[str], str], None]
 
 
 @pytest.fixture
