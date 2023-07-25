@@ -4,19 +4,8 @@ import os
 import subprocess
 import sys
 import tempfile
-from configparser import ConfigParser
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Optional,
-    TextIO,
-    Tuple,
-    Union,
-    no_type_check,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import py
 import pytest
@@ -31,7 +20,7 @@ from mypy.main import process_options
 if TYPE_CHECKING:
     from _pytest._code.code import _TracebackStyle
 
-from pytest_mypy_plugins import utils
+from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
 from pytest_mypy_plugins.utils import (
     OutputMatcher,
@@ -147,10 +136,19 @@ class YamlTestItem(pytest.Item):
 
         # config parameters
         self.root_directory = self.config.option.mypy_testing_base
+
+        # You cannot use both `.ini` and `pyproject.toml` files at the same time:
+        if self.config.option.mypy_ini_file and self.config.option.mypy_pyproject_toml_file:
+            raise ValueError("Cannot specify both `--mypy-ini-file` and `--mypy-pyproject-toml-file`")
+
         if self.config.option.mypy_ini_file:
             self.base_ini_fpath = os.path.abspath(self.config.option.mypy_ini_file)
         else:
             self.base_ini_fpath = None
+        if self.config.option.mypy_pyproject_toml_file:
+            self.base_pyproject_toml_fpath = os.path.abspath(self.config.option.mypy_pyproject_toml_file)
+        else:
+            self.base_pyproject_toml_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
 
     def make_test_file(self, file: File) -> None:
@@ -204,8 +202,7 @@ class YamlTestItem(pytest.Item):
 
         completed = subprocess.run(
             [mypy_executable, *mypy_cmd_options],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             cwd=os.getcwd(),
             env=self.environment_variables,
         )
@@ -314,24 +311,26 @@ class YamlTestItem(pytest.Item):
         if not self.disable_cache:
             mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
 
-        # Merge `self.base_ini_fpath` and `self.additional_mypy_config`
-        # into one file and copy to the typechecking folder:
-        mypy_ini_config = ConfigParser()
-        if self.base_ini_fpath:
-            mypy_ini_config.read(self.base_ini_fpath)
-        if self.additional_mypy_config:
-            additional_config = self.additional_mypy_config
-            if "[mypy]" not in additional_config:
-                additional_config = "[mypy]\n" + additional_config
-            mypy_ini_config.read_string(additional_config)
-
-        if mypy_ini_config.sections():
-            mypy_config_file_path = execution_path / "mypy.ini"
-            with mypy_config_file_path.open("w") as f:
-                mypy_ini_config.write(f)
-            mypy_cmd_options.append(f"--config-file={str(mypy_config_file_path)}")
+        config_file = self.prepare_config_file(execution_path)
+        if config_file:
+            mypy_cmd_options.append(f"--config-file={config_file}")
 
         return mypy_cmd_options
+
+    def prepare_config_file(self, execution_path: Path) -> Optional[str]:
+        # Merge (`self.base_ini_fpath` or `base_pyproject_toml_fpath`)
+        # and `self.additional_mypy_config`
+        # into one file and copy to the typechecking folder:
+        if self.base_pyproject_toml_fpath:
+            return configs.join_toml_configs(
+                self.base_pyproject_toml_fpath, self.additional_mypy_config, execution_path
+            )
+        elif self.base_ini_fpath or self.additional_mypy_config:
+            # We might have `self.base_ini_fpath` set as well.
+            # Or this might be a legacy case: only `mypy_config:` is set in the `yaml` test case.
+            # This means that no real file is provided.
+            return configs.join_ini_configs(self.base_ini_fpath, self.additional_mypy_config, execution_path)
+        return None
 
     def repr_failure(
         self, excinfo: ExceptionInfo[BaseException], style: Optional["_TracebackStyle"] = None
@@ -357,10 +356,10 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style="native")
 
-    @no_type_check
     def reportinfo(self) -> Tuple[Union[py.path.local, Path, str], Optional[int], str]:
         # To support both Pytest 6.x and 7.x
         path = getattr(self, "path", None) or getattr(self, "fspath")
+        assert path
         return path, None, self.name
 
     def _collect_python_path(

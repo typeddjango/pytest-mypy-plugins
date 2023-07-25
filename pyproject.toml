@@ -1,5 +1,23 @@
+[tool.mypy]
+ignore_missing_imports = true
+strict_optional = true
+no_implicit_optional = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+strict_equality = true
+warn_unreachable = true
+warn_no_return = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+addopts = "-s --mypy-extension-hook pytest_mypy_plugins.tests.reveal_type_hook.hook"
+
 [tool.black]
 line-length = 120
+target-version = ["py38", "py39", "py310", "py311"]
 
 [tool.isort]
 include_trailing_comma = true

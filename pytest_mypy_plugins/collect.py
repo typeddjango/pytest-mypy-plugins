@@ -3,6 +3,7 @@ import pathlib
 import platform
 import sys
 import tempfile
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -28,10 +29,10 @@ if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 
+@dataclass(slots=True)
 class File:
-    def __init__(self, path: str, content: str) -> None:
-        self.path = path
-        self.content = content
+    path: str
+    content: str
 
 
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
@@ -77,7 +78,7 @@ class SafeLineLoader(yaml.SafeLoader):
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
-        for title_node, contents_node in node.value:
+        for title_node, _contents_node in node.value:
             if title_node.value == "main":
                 starting_line = title_node.start_mark.line + 1
         mapping["__line__"] = starting_line
@@ -172,7 +173,16 @@ def pytest_addoption(parser: Parser) -> None:
     group.addoption(
         "--mypy-testing-base", type=str, default=tempfile.gettempdir(), help="Base directory for tests to use"
     )
-    group.addoption("--mypy-ini-file", type=str, help="Which .ini file to use as a default config for tests")
+    group.addoption(
+        "--mypy-pyproject-toml-file",
+        type=str,
+        help="Which `pyproject.toml` file to use as a default config for tests. Incompatible with `--mypy-ini-file`",
+    )
+    group.addoption(
+        "--mypy-ini-file",
+        type=str,
+        help="Which `.ini` file to use as a default config for tests. Incompatible with `--mypy-pyproject-toml-file`",
+    )
     group.addoption(
         "--mypy-same-process",
         action="store_true",

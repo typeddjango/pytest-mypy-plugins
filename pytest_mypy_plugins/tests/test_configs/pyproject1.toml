@@ -1,0 +1,10 @@
+# This file has `[tool.mypy]` existing config
+
+[tool.mypy]
+warn_unused_ignores = true
+pretty = true
+show_error_codes = true
+
+[tool.other]
+# This section should not be copied:
+key = 'value'
