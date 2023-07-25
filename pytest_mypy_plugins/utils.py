@@ -164,8 +164,8 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
         extra = "..."
 
     # Write a chunk of both lines, aligned.
-    error_message += "  E: {}{}\n".format(s1[:maxw], extra)
-    error_message += "  A: {}{}\n".format(s2[:maxw], extra)
+    error_message += f"  E: {s1[:maxw]}{extra}\n"
+    error_message += f"  A: {s2[:maxw]}{extra}\n"
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
@@ -208,10 +208,10 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
     """
 
     def format_mismatched_line(line: str) -> str:
-        return "  {:<45} (diff)".format(str(line))
+        return f"  {str(line):<45} (diff)"
 
     def format_matched_line(line: str, width: int = 100) -> str:
-        return " {}...".format(line[:width]) if len(line) > width else " {}".format(line)
+        return f" {line[:width]}..." if len(line) > width else f" {line}"
 
     def format_error_lines(lines: List[str]) -> str:
         return "\n".join(lines) if lines else "  (empty)"

@@ -1,15 +1,18 @@
 # Version history
 
 
-## WIP
+## 3.0.0
 
 ### Features
 
-- Add `tox.ini` file
+- *Breaking*: Drop python3.7 support
+- Add `pyproject.toml` config file support with `--mypy-pyproject-toml-file` option
 
 ### Bugfixes
 
-- Add `requirements.txt` to `sdist` package
+- Add `tox.ini` file to `sdist` package
+- Add `requirements.txt` file to `sdist` package
+- Add `pyproject.toml` file to `sdist` package
 
 
 ## 2.0.0

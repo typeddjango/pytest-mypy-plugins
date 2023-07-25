@@ -68,7 +68,7 @@ On top of that, each case must comply to following types:
 | `main`          | `str`                                                  | Portion of the code as if written in `.py` file                                                                     |
 | `files`         | `Optional[List[File]]=[]`\*                            | List of extra files to simulate imports if needed                                                                   |
 | `disable_cache` | `Optional[bool]=False`                                 | Set to `true` disables `mypy` caching                                                                               |
-| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option                                    |
+| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option, possibly joined with `--mypy-pyproject-toml-file` or `--mypy-ini-file` contents if they are passed. By default is treated as `ini`, treated as `toml` only if `--mypy-pyproject-toml-file` is passed |
 | `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                           |
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html)     |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
@@ -170,11 +170,18 @@ Properties that you can parametrize:
 mypy-tests:
   --mypy-testing-base=MYPY_TESTING_BASE
                         Base directory for tests to use
+  --mypy-pyproject-toml-file=MYPY_PYPROJECT_TOML_FILE
+                        Which `pyproject.toml` file to use
+                        as a default config for tests.
+                        Incompatible with `--mypy-ini-file`
   --mypy-ini-file=MYPY_INI_FILE
-                        Which .ini file to use as a default config for tests
-  --mypy-same-process   Run in the same process. Useful for debugging, will create problems with import cache
+                        Which `.ini` file to use as a default config for tests.
+                        Incompatible with `--mypy-pyproject-toml-file`
+  --mypy-same-process   Run in the same process. Useful for debugging,
+                        will create problems with import cache
   --mypy-extension-hook=MYPY_EXTENSION_HOOK
-                        Fully qualified path to the extension hook function, in case you need custom yaml keys. Has to be top-level.
+                        Fully qualified path to the extension hook function,
+                        in case you need custom yaml keys. Has to be top-level
   --mypy-only-local-stub
                         mypy will ignore errors from site-packages
 

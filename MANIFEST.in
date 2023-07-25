@@ -1,5 +1,4 @@
-include mypy.ini
-include pytest.ini
 include requirements.txt
 include tox.ini
+include pyproject.toml
 graft pytest_mypy_plugins/tests

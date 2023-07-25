@@ -1,0 +1,9 @@
+# Also used in `test_explicit_configs.py`
+
+- case: custom_mypy_config_strict_optional_true_set
+  main: |
+    from typing import Optional
+    a: Optional[int] = None
+    a + 1  # should not raise an error
+  mypy_config: |
+    strict_optional = false
