@@ -354,6 +354,9 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
 
 
 def render_template(template: str, data: Mapping[str, Any]) -> str:
+    if jinja2.defaults.VARIABLE_START_STRING not in template:
+        return template
+
     t: jinja2.environment.Template = _rendering_env.from_string(template)
     return t.render({k: v if v is not None else "None" for k, v in data.items()})
 

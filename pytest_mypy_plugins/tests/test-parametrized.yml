@@ -46,6 +46,15 @@
     main:2: note: Revealed type is "{{ rt }}"
     main:4: error: Unsupported operand types for / ("str" and "int")  [operator]
 
+- case: parametrized_can_skip_mypy_config_section
+  parametrized:
+    - val: False
+    - val: True
+  mypy_config: |
+    hide_error_codes = True
+  main: |
+    a = {{ val }}
+    a.lower()  # E: "bool" has no attribute "lower"
 
 - case: with_mypy_config
   parametrized:
