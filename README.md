@@ -68,7 +68,7 @@ On top of that, each case must comply to following types:
 | `main`          | `str`                                                  | Portion of the code as if written in `.py` file                                                                     |
 | `files`         | `Optional[List[File]]=[]`\*                            | List of extra files to simulate imports if needed                                                                   |
 | `disable_cache` | `Optional[bool]=False`                                 | Set to `true` disables `mypy` caching                                                                               |
-| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option, possibly joined with `--mypy-pyproject-toml-file` or `--mypy-ini-file` contents if they are passed. By default is treated as `ini`, treated as `toml` only if `--mypy-pyproject-toml-file` is passed |
+| `mypy_config`   | `Optional[str]                                       ` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option, possibly joined with `--mypy-pyproject-toml-file` or `--mypy-ini-file` contents if they are passed. By default is treated as `ini`, treated as `toml` only if `--mypy-pyproject-toml-file` is passed |
 | `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                           |
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html)     |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
@@ -93,6 +93,14 @@ Implementation notes:
 - `skip` - an expression set in `skip` is passed directly into
   [`eval`](https://docs.python.org/3/library/functions.html#eval). It is advised to take a peek and
   learn about how `eval` works.
+
+Repository also offers a [JSONSchema](pytest_mypy_plugins/schema.json), with which
+it validates the input. It can also offer your editor auto-completions, descriptions, and validation.
+
+All you have to do, add the following line at the top of your YAML file:
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/typeddjango/pytest-mypy-plugins/master/pytest_mypy_plugins/schema.json
+```
 
 ### Example
 

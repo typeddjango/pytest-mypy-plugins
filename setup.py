@@ -4,13 +4,14 @@ with open("README.md") as f:
     readme = f.read()
 
 dependencies = [
-    "pytest>=7.0.0",
-    "mypy>=1.3",
-    "decorator",
-    "pyyaml",
     "Jinja2",
-    "regex",
+    "decorator",
+    "jsonschema",
+    "mypy>=1.3",
     "packaging",
+    "pytest>=7.0.0",
+    "pyyaml",
+    "regex",
     "tomlkit>=0.11",
 ]
 
