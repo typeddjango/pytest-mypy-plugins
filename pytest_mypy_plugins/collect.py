@@ -1,3 +1,4 @@
+import json
 import os
 import pathlib
 import platform
@@ -16,6 +17,7 @@ from typing import (
     Set,
 )
 
+import jsonschema
 import py.path
 import pytest
 import yaml
@@ -29,10 +31,27 @@ if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 
+SCHEMA = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text("utf8"))
+SCHEMA["items"]["properties"]["__line__"] = {
+    "type": "integer",
+    "description": "Line number where the test starts (`pytest-mypy-plugins` internal)",
+}
+
+
 @dataclass
 class File:
     path: str
     content: str
+
+
+def validate_schema(data: Any) -> None:
+    """Validate the schema of the file-under-test."""
+    # Unfortunately, yaml.safe_load() returns Any,
+    # so we make our intention explicit here.
+    if not isinstance(data, list):
+        raise TypeError(f"Test file has to be YAML list, got {type(data)!r}.")
+
+    jsonschema.validate(instance=data, schema=SCHEMA)
 
 
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
@@ -94,6 +113,8 @@ class YamlTestFile(pytest.File):
         parsed_file = yaml.load(stream=path.read_text("utf8"), Loader=SafeLineLoader)
         if parsed_file is None:
             return
+
+        validate_schema(parsed_file)
 
         if not isinstance(parsed_file, list):
             raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
