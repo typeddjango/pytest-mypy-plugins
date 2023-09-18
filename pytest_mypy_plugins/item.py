@@ -391,5 +391,7 @@ class YamlTestItem(pytest.Item):
         if mypy_path_key:
             mypy_path_parts.append(maybe_to_abspath(mypy_path_key, rootdir))
             mypy_path_parts.append(mypy_path_key)
+        if rootdir:
+            mypy_path_parts.append(str(rootdir))
 
         self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)
