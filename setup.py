@@ -33,7 +33,7 @@ setup(
     install_requires=dependencies,
     python_requires=">=3.8",
     package_data={
-        "pytest_mypy_plugins": ["py.typed"],
+        "pytest_mypy_plugins": ["py.typed", "schema.json"],
     },
     classifiers=[
         "Development Status :: 4 - Beta",
