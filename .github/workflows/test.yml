@@ -26,6 +26,8 @@ jobs:
       run: |
         pip install -U pip setuptools wheel
         pip install -e .
+        # Workaround until Mypy regression is fixed.
+        pip install mypy==1.5.1
         # Force correct `pytest` version for different envs:
         pip install -U "pytest${{ matrix.pytest-version }}"
     - name: Run tests

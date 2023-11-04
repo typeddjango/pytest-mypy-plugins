@@ -195,6 +195,22 @@ mypy-tests:
 
 ```
 
+## Configuration
+
+For convenience, it is also possible to define a default `mypy` configuration in the root `pyproject.toml` file of your project:
+
+```toml
+[tool.pytest-mypy-plugins.mypy-config]
+force_uppercase_builtins = true
+force_union_syntax = true
+```
+
+The ultimate `mypy` configuration applied during a test is derived by merging the following sources (if they exist), in order:
+
+1. The `mypy-config` table in the root `pyproject.toml` of the project.
+2. The configuration file provided via `--mypy-pyproject-toml-file` or `--mypy-ini-file`.
+3. The `config_mypy` field of the test case.
+
 ## Further reading
 
 - [Testing mypy stubs, plugins, and types](https://sobolevn.me/2019/08/testing-mypy-types)

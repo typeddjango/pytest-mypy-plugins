@@ -19,6 +19,12 @@ show_error_codes = false
 show_traceback = true
 """
 
+_MYPY_PLUGINS_CONFIG: Final = {
+    "pretty": False,
+    "show_column_numbers": True,
+    "warn_unused_ignores": False,
+}
+
 _PYPROJECT1: Final = str(Path(__file__).parent / "pyproject1.toml")
 _PYPROJECT2: Final = str(Path(__file__).parent / "pyproject2.toml")
 
@@ -68,6 +74,46 @@ def test_join_existing_config(
     )
 
 
+def test_join_existing_config1(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+    filepath = join_toml_configs(_PYPROJECT1, "", execution_path, _MYPY_PLUGINS_CONFIG)
+
+    assert_file_contents(
+        filepath,
+        """
+        [tool.mypy]
+        pretty = true
+        show_column_numbers = true
+        warn_unused_ignores = true
+        show_error_codes = true
+        """,
+    )
+
+
+@pytest.mark.parametrize(
+    "additional_config",
+    [
+        _ADDITIONAL_CONFIG,
+        _ADDITIONAL_CONFIG_NO_TABLE,
+    ],
+)
+def test_join_existing_config2(
+    execution_path: Path, assert_file_contents: _AssertFileContents, additional_config: str
+) -> None:
+    filepath = join_toml_configs(_PYPROJECT1, additional_config, execution_path, _MYPY_PLUGINS_CONFIG)
+
+    assert_file_contents(
+        filepath,
+        """
+        [tool.mypy]
+        pretty = true
+        show_column_numbers = true
+        warn_unused_ignores = true
+        show_error_codes = false
+        show_traceback = true
+        """,
+    )
+
+
 @pytest.mark.parametrize(
     "additional_config",
     [
@@ -111,4 +157,43 @@ def test_join_missing_config2(execution_path: Path, assert_file_contents: _Asser
     assert_file_contents(
         filepath,
         "[tool.mypy]",
+    )
+
+
+def test_join_missing_config3(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+    filepath = join_toml_configs(_PYPROJECT2, "", execution_path, _MYPY_PLUGINS_CONFIG)
+
+    assert_file_contents(
+        filepath,
+        """
+        [tool.mypy]
+        pretty = false
+        show_column_numbers = true
+        warn_unused_ignores = false
+        """,
+    )
+
+
+@pytest.mark.parametrize(
+    "additional_config",
+    [
+        _ADDITIONAL_CONFIG,
+        _ADDITIONAL_CONFIG_NO_TABLE,
+    ],
+)
+def test_join_missing_config4(
+    execution_path: Path, assert_file_contents: _AssertFileContents, additional_config: str
+) -> None:
+    filepath = join_toml_configs(_PYPROJECT2, additional_config, execution_path, _MYPY_PLUGINS_CONFIG)
+
+    assert_file_contents(
+        filepath,
+        """
+        [tool.mypy]
+        pretty = true
+        show_column_numbers = true
+        warn_unused_ignores = false
+        show_error_codes = false
+        show_traceback = true
+        """,
     )

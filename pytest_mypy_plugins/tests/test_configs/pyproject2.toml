@@ -1,1 +1,1 @@
-# This file has no `[tool.mypy]` existing config
+# This file has no `[tool.mypy]` nor `[tool.pytest-mypy-plugins.mypy-config]` existing config

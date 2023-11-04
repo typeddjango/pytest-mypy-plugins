@@ -141,6 +141,12 @@ class YamlTestItem(pytest.Item):
         if self.config.option.mypy_ini_file and self.config.option.mypy_pyproject_toml_file:
             raise ValueError("Cannot specify both `--mypy-ini-file` and `--mypy-pyproject-toml-file`")
 
+        # Optionally retrieve plugin configuration through the root `pyproject.toml` file.
+        if (self.config.rootpath / "pyproject.toml").exists():
+            self.config_pyproject_toml_fpath: Optional[str] = str(self.config.rootpath / "pyproject.toml")
+        else:
+            self.config_pyproject_toml_fpath = None
+
         if self.config.option.mypy_ini_file:
             self.base_ini_fpath = os.path.abspath(self.config.option.mypy_ini_file)
         else:
@@ -318,18 +324,25 @@ class YamlTestItem(pytest.Item):
         return mypy_cmd_options
 
     def prepare_config_file(self, execution_path: Path) -> Optional[str]:
+        # We allow a default Mypy config in root `pyproject.toml` file. This is useful to define
+        # options that are specific to the tests without requiring an additional file.
+        if self.config_pyproject_toml_fpath:
+            mypy_plugins_config = configs.load_mypy_plugins_config(self.config_pyproject_toml_fpath)
+
         # Merge (`self.base_ini_fpath` or `base_pyproject_toml_fpath`)
         # and `self.additional_mypy_config`
         # into one file and copy to the typechecking folder:
         if self.base_pyproject_toml_fpath:
             return configs.join_toml_configs(
-                self.base_pyproject_toml_fpath, self.additional_mypy_config, execution_path
+                self.base_pyproject_toml_fpath, self.additional_mypy_config, execution_path, mypy_plugins_config
             )
-        elif self.base_ini_fpath or self.additional_mypy_config:
+        elif self.base_ini_fpath or self.additional_mypy_config or self.config_pyproject_toml_fpath:
             # We might have `self.base_ini_fpath` set as well.
             # Or this might be a legacy case: only `mypy_config:` is set in the `yaml` test case.
             # This means that no real file is provided.
-            return configs.join_ini_configs(self.base_ini_fpath, self.additional_mypy_config, execution_path)
+            return configs.join_ini_configs(
+                self.base_ini_fpath, self.additional_mypy_config, execution_path, mypy_plugins_config
+            )
         return None
 
     def repr_failure(
