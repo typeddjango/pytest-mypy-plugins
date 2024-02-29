@@ -1,6 +1,13 @@
 # Version history
 
 
+## 3.1.0
+
+### Features
+
+- Add `mypy@1.8.0` support
+
+
 ## 3.0.0
 
 ### Features

@@ -13,8 +13,9 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-        pytest-version: ["~=6.2", "~=7.2"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        pytest-version: ["~=7.2", "~8.0"]
+        mypy-version: ["~=1.7", "~1.8"]  # TODO: remove when 
 
     steps:
     - uses: actions/checkout@v4
@@ -28,6 +29,8 @@ jobs:
         pip install -e .
         # Force correct `pytest` version for different envs:
         pip install -U "pytest${{ matrix.pytest-version }}"
+        # Force correct `mypy` version:
+        pip install -U "mypy${{ matrix.mypy-version }}"
     - name: Run tests
       run: pytest
 
