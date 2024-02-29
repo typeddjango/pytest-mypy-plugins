@@ -14,8 +14,8 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        pytest-version: ["~=7.2", "~8.0"]
-        mypy-version: ["~=1.7", "~1.8"]  # TODO: remove when 
+        pytest-version: ["~=7.2", "~=8.0"]
+        mypy-version: ["~=1.7", "~=1.8"]  # TODO: remove when
 
     steps:
     - uses: actions/checkout@v4
