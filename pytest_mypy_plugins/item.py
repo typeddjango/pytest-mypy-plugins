@@ -82,10 +82,11 @@ def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO
 
     error_messages = []
 
-    # discard filename parameter '_'. Mypy uses it to generate
-    # one junit-xml test entry per file with failures (--junit-format per_file)
-    # and we don't support mypy's --junit-xml option in the first place.
-    def flush_errors(_: str | None, new_messages: List[str], serious: bool) -> None:
+    # Different mypy versions have different arity of `flush_errors`: 2 and 3 params
+    def flush_errors(*args: Any) -> None:
+        new_messages: List[str]
+        serious: bool
+        *_, new_messages, serious = args
         error_messages.extend(new_messages)
         f = stderr if serious else stdout
         try:
