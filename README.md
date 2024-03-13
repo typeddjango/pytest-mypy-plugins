@@ -185,13 +185,18 @@ mypy-tests:
   --mypy-ini-file=MYPY_INI_FILE
                         Which `.ini` file to use as a default config for tests.
                         Incompatible with `--mypy-pyproject-toml-file`
-  --mypy-same-process   Run in the same process. Useful for debugging,
+  --mypy-same-process
+                        Run in the same process. Useful for debugging,
                         will create problems with import cache
   --mypy-extension-hook=MYPY_EXTENSION_HOOK
                         Fully qualified path to the extension hook function,
                         in case you need custom yaml keys. Has to be top-level
   --mypy-only-local-stub
                         mypy will ignore errors from site-packages
+  --mypy-closed-schema
+                        Use closed schema to validate YAML test cases,
+                        which won't allow any extra keys
+                        (does not work well with `--mypy-extension-hook`)
 
 ```
 

@@ -31,27 +31,27 @@ if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 
-SCHEMA = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text("utf8"))
-SCHEMA["items"]["properties"]["__line__"] = {
-    "type": "integer",
-    "description": "Line number where the test starts (`pytest-mypy-plugins` internal)",
-}
-
-
 @dataclass
 class File:
     path: str
     content: str
 
 
-def validate_schema(data: Any) -> None:
+def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     """Validate the schema of the file-under-test."""
     # Unfortunately, yaml.safe_load() returns Any,
     # so we make our intention explicit here.
     if not isinstance(data, list):
         raise TypeError(f"Test file has to be YAML list, got {type(data)!r}.")
 
-    jsonschema.validate(instance=data, schema=SCHEMA)
+    schema = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text("utf8"))
+    schema["items"]["properties"]["__line__"] = {
+        "type": "integer",
+        "description": "Line number where the test starts (`pytest-mypy-plugins` internal)",
+    }
+    schema["items"]["additionalProperties"] = not is_closed
+
+    jsonschema.validate(instance=data, schema=schema)
 
 
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
@@ -114,7 +114,7 @@ class YamlTestFile(pytest.File):
         if parsed_file is None:
             return
 
-        validate_schema(parsed_file)
+        validate_schema(parsed_file, is_closed=self.config.option.mypy_closed_schema)
 
         if not isinstance(parsed_file, list):
             raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
@@ -219,4 +219,9 @@ def pytest_addoption(parser: Parser) -> None:
         "--mypy-only-local-stub",
         action="store_true",
         help="mypy will ignore errors from site-packages",
+    )
+    group.addoption(
+        "--mypy-closed-schema",
+        action="store_true",
+        help="Use closed schema to validate YAML test cases, which won't allow any extra keys (does not work well with `--mypy-extension-hook`)",
     )

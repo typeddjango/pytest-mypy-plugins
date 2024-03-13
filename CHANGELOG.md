@@ -1,11 +1,21 @@
 # Version history
 
 
+## 3.1.1
+
+### Bugfixes
+
+- Make sure that schema is open by default: only check existing fields
+- Add `--mypy-schema-closed` option to check schemas with no extra fields
+
+
 ## 3.1.0
 
 ### Features
 
+- Add `python3.12` support
 - Add `mypy@1.8.0` support
+- Add schema definition
 
 
 ## 3.0.0
