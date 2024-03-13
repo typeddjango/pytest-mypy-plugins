@@ -6,7 +6,7 @@
   "type": "array",
   "items": {
     "type": "object",
-    "additionalProperties": false,
+    "additionalProperties": true,
     "properties": {
       "case": {
         "type": "string",
@@ -130,15 +130,6 @@
         "type": "boolean",
         "description": "Allow regular expressions in comments to be matched against actual output. _See pytest_mypy_plugins/tests/test-regex_assertions.yml for examples_",
         "default": false
-      },
-      "reveal_type": {
-        "description": "Shorthand for\n\n```yaml\n  main: |\n    reveal_type({{ reveal_type }})\n```\n\nMust be a syntactically valid Python expression.\n",
-        "examples": [
-          "1",
-          1,
-          true,
-          "sys.version_info"
-        ]
       }
     },
     "required": [

@@ -40,3 +40,19 @@ def test_mypy_config_is_not_an_object() -> None:
     assert (
         ex.value.message == "[{'force_uppercase_builtins': True}, {'force_union_syntax': True}] is not of type 'string'"
     )
+
+
+def test_closed_schema() -> None:
+    with pytest.raises(jsonschema.exceptions.ValidationError) as ex:
+        validate_schema(
+            [
+                {
+                    "case": "mypy_config_is_not_an_object",
+                    "main": "False",
+                    "extra_field": 1,
+                }
+            ],
+            is_closed=True,
+        )
+
+    assert ex.value.message == "Additional properties are not allowed ('extra_field' was unexpected)"
