@@ -21,7 +21,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         pytest-version: ["~=7.2", "~=8.1"]
         # TODO: remove after several new versions of mypy
-        mypy-version: ["~=1.7", "~1.9"]
+        mypy-version: ["~=1.7", "~=1.9"]
 
     steps:
     - uses: actions/checkout@v4
