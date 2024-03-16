@@ -1,0 +1,10 @@
+# This file has `[tool.pytest-mypy-plugins.mypy-config]` existing config
+
+[tool.pytest-mypy-plugins.mypy-config]
+pretty = false
+show_column_numbers = true
+warn_unused_ignores = false
+
+[tool.other]
+# This section should not be copied:
+key = 'value'

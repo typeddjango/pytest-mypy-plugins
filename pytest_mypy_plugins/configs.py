@@ -1,15 +1,28 @@
 from configparser import ConfigParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Final, Optional
+from typing import Any, Dict, Final, Optional
 
 import tomlkit
 
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 
 
-def join_ini_configs(base_ini_fpath: Optional[str], additional_mypy_config: str, execution_path: Path) -> Optional[str]:
+def load_mypy_plugins_config(config_pyproject_toml_path: str) -> Optional[Dict[str, Any]]:
+    with open(config_pyproject_toml_path) as f:
+        toml_config = tomlkit.parse(f.read())
+    return toml_config.get("tool", {}).get("pytest-mypy-plugins", {}).get("mypy-config")
+
+
+def join_ini_configs(
+    base_ini_fpath: Optional[str],
+    additional_mypy_config: str,
+    execution_path: Path,
+    mypy_plugins_config: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
     mypy_ini_config = ConfigParser()
+    if mypy_plugins_config:
+        mypy_ini_config.read_dict({"mypy": mypy_plugins_config})
     if base_ini_fpath:
         mypy_ini_config.read(base_ini_fpath)
     if additional_mypy_config:
@@ -26,34 +39,38 @@ def join_ini_configs(base_ini_fpath: Optional[str], additional_mypy_config: str,
 
 
 def join_toml_configs(
-    base_pyproject_toml_fpath: str, additional_mypy_config: str, execution_path: Path
+    base_pyproject_toml_fpath: str,
+    additional_mypy_config: str,
+    execution_path: Path,
+    mypy_plugins_config: Optional[Dict[str, Any]] = None,
 ) -> Optional[str]:
+    # Empty document with `[tool.mypy]` empty table, useful for overrides further.
+    toml_document = tomlkit.document()
+    tool = tomlkit.table(is_super_table=True)
+    tool.append("mypy", tomlkit.table())
+    toml_document.append("tool", tool)
+
+    if mypy_plugins_config:
+        toml_document["tool"]["mypy"].update(mypy_plugins_config.items())  # type: ignore[index, union-attr]
+
     if base_pyproject_toml_fpath:
         with open(base_pyproject_toml_fpath) as f:
             toml_config = tomlkit.parse(f.read())
-    else:
-        # Emtpy document with `[tool.mypy` empty table,
-        # useful for overrides further.
-        toml_config = tomlkit.document()
-
-    if "tool" not in toml_config or "mypy" not in toml_config["tool"]:  # type: ignore[operator]
-        tool = tomlkit.table(is_super_table=True)
-        tool.append("mypy", tomlkit.table())
-        toml_config.append("tool", tool)
+        # We don't want the whole config file, because it can contain
+        # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
+        if "tool" in toml_config and "mypy" in toml_config["tool"]:  # type: ignore[operator]
+            toml_document["tool"]["mypy"].update(toml_config["tool"]["mypy"].value.items())  # type: ignore[index, union-attr]
 
     if additional_mypy_config:
         if _TOML_TABLE_NAME not in additional_mypy_config:
             additional_mypy_config = f"{_TOML_TABLE_NAME}\n{dedent(additional_mypy_config)}"
 
         additional_data = tomlkit.parse(additional_mypy_config)
-        toml_config["tool"]["mypy"].update(  # type: ignore[index, union-attr]
+        toml_document["tool"]["mypy"].update(  # type: ignore[index, union-attr]
             additional_data["tool"]["mypy"].value.items(),  # type: ignore[index]
         )
 
     mypy_config_file_path = execution_path / "pyproject.toml"
     with mypy_config_file_path.open("w") as f:
-        # We don't want the whole config file, because it can contain
-        # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
-        f.write(f"{_TOML_TABLE_NAME}\n")
-        f.write(dedent(toml_config["tool"]["mypy"].as_string()))  # type: ignore[index]
+        f.write(toml_document.as_string())
     return str(mypy_config_file_path)
