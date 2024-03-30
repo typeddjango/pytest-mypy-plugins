@@ -54,6 +54,12 @@ def join_toml_configs(
     with mypy_config_file_path.open("w") as f:
         # We don't want the whole config file, because it can contain
         # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
-        f.write(f"{_TOML_TABLE_NAME}\n")
-        f.write(dedent(toml_config["tool"]["mypy"].as_string()))  # type: ignore[index]
+        for key in list(toml_config.keys()):
+            if key != "tool":
+                del toml_config[key]
+        for key in list(toml_config["tool"].keys()):
+            if key != "mypy":
+                del toml_config["tool"][key]
+
+        f.write(toml_config.as_string())  # type: ignore[index]
     return str(mypy_config_file_path)
