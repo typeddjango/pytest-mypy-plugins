@@ -1,6 +1,13 @@
 # Version history
 
 
+## 3.1.2
+
+### Bugfixes
+
+- Fix joining `toml` configs with `[[mypy.overrides]]`
+
+
 ## 3.1.1
 
 ### Bugfixes
