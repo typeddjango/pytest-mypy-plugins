@@ -4,6 +4,8 @@ from textwrap import dedent
 from typing import Final, Optional
 
 import tomlkit
+from tomlkit.items import Comment, Whitespace
+
 
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 
@@ -54,12 +56,19 @@ def join_toml_configs(
     with mypy_config_file_path.open("w") as f:
         # We don't want the whole config file, because it can contain
         # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
-        for key in list(toml_config.keys()):
-            if key != "tool":
-                del toml_config[key]
-        for key in list(toml_config["tool"].keys()):
-            if key != "mypy":
-                del toml_config["tool"][key]
+        tool_mypy = toml_config["tool"]["mypy"]
 
-        f.write(toml_config.as_string())  # type: ignore[index]
+        # construct toml output
+        min_toml = tomlkit.document()
+        min_tool = tomlkit.table(is_super_table=True)
+        min_toml.append("tool", min_tool)
+        min_tool.append("mypy", tool_mypy)
+
+        # strip leading comments
+        for i, item in enumerate(min_toml.body):
+            if not isinstance(item, (Comment, Whitespace)):
+                break
+        min_toml.body[:] = min_toml.body[i:]
+
+        f.write(min_toml.as_string())  # type: ignore[index]
     return str(mypy_config_file_path)
