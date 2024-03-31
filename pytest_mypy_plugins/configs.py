@@ -6,7 +6,6 @@ from typing import Final, Optional
 import tomlkit
 from tomlkit.items import Comment, Whitespace
 
-
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 
 
