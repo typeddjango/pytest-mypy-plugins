@@ -55,7 +55,7 @@ def join_toml_configs(
     with mypy_config_file_path.open("w") as f:
         # We don't want the whole config file, because it can contain
         # other sections like `[tool.isort]`, we only need `[tool.mypy]` part.
-        tool_mypy = toml_config["tool"]["mypy"]
+        tool_mypy = toml_config["tool"]["mypy"]  # type: ignore[index]
 
         # construct toml output
         min_toml = tomlkit.document()
@@ -69,5 +69,5 @@ def join_toml_configs(
                 break
         min_toml.body[:] = min_toml.body[i:]
 
-        f.write(min_toml.as_string())  # type: ignore[index]
+        f.write(min_toml.as_string())
     return str(mypy_config_file_path)
