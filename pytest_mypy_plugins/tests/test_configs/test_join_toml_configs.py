@@ -21,6 +21,7 @@ show_traceback = true
 
 _PYPROJECT1: Final = str(Path(__file__).parent / "pyproject1.toml")
 _PYPROJECT2: Final = str(Path(__file__).parent / "pyproject2.toml")
+_PYPROJECT3: Final = str(Path(__file__).parent / "pyproject3.toml")
 
 
 @pytest.fixture
@@ -111,4 +112,23 @@ def test_join_missing_config2(execution_path: Path, assert_file_contents: _Asser
     assert_file_contents(
         filepath,
         "[tool.mypy]",
+    )
+
+
+def test_join_missing_config3(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+    filepath = join_toml_configs(_PYPROJECT3, "", execution_path)
+
+    assert_file_contents(
+        filepath,
+        """
+        [tool.mypy]
+        warn_unused_ignores = true
+        pretty = true
+        show_error_codes = true
+
+        [[tool.mypy.overrides]]
+        # This section should be copied
+        module = "mymodule"
+        ignore_missing_imports = true
+        """,
     )

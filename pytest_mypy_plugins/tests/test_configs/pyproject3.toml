@@ -1,0 +1,11 @@
+# This file has `[tool.mypy]` existing config
+
+[tool.mypy]
+warn_unused_ignores = true
+pretty = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+# This section should be copied
+module = "mymodule"
+ignore_missing_imports = true
