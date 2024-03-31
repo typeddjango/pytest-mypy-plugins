@@ -4,7 +4,6 @@ from textwrap import dedent
 from typing import Final, Optional
 
 import tomlkit
-from tomlkit.items import Comment, Whitespace
 
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 
@@ -62,12 +61,6 @@ def join_toml_configs(
         min_tool = tomlkit.table(is_super_table=True)
         min_toml.append("tool", min_tool)
         min_tool.append("mypy", tool_mypy)
-
-        # strip leading comments
-        for i, item in enumerate(min_toml.body):
-            if not isinstance(item, (Comment, Whitespace)):
-                break
-        min_toml.body[:] = min_toml.body[i:]
 
         f.write(min_toml.as_string())
     return str(mypy_config_file_path)
