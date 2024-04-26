@@ -1,0 +1,19 @@
+- case: assert_type
+  main: |
+    from typing_extensions import assert_type
+
+    def x() -> int:
+        return 1
+
+    assert_type(x(), int)
+
+- case: assert_type_error
+  mypy_config: |
+    warn_unused_ignores = true
+  main: |
+    from typing_extensions import assert_type
+
+    def x() -> int:
+        return 1
+
+    assert_type(x(), str)  # type: ignore

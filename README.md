@@ -33,6 +33,24 @@ just execute:
 pytest
 ```
 
+### Asserting types
+
+There are two ways to assert types.
+The custom one and regular [`typing.assert_type`](https://docs.python.org/3/library/typing.html#typing.assert_type).
+
+Our custom type assertion uses `reveal_type` helper and custom output matchers:
+
+```yml
+- case: using_reveal_type
+  main: |
+    instance = 1
+    reveal_type(instance)  # N: Revealed type is 'builtins.int'
+```
+
+This method also allows to use `# E:` for matching exact error messages and codes.
+
+But, you can also use regular `assert_type`, examples can be [found here](https://github.com/typeddjango/pytest-mypy-plugins/blob/master/pytest_mypy_plugins/tests/test-assert-type.yml).
+
 ### Paths
 
 The `PYTHONPATH` and `MYPYPATH` environment variables, if set, are passed to `mypy` on invocation.
