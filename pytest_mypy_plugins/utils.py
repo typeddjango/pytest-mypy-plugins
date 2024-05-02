@@ -1,8 +1,6 @@
 # Borrowed from Pew.
 # See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
-import contextlib
 import inspect
-import io
 import os
 import re
 import sys
