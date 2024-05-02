@@ -76,7 +76,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO) -> Optional[Union[str, int]]:
+def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -100,7 +100,16 @@ def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO
         build.build(sources, options, flush_errors=flush_errors, fscache=fscache, stdout=stdout, stderr=stderr)
 
     except SystemExit as sysexit:
-        return sysexit.code
+        # The code to a SystemExit is optional
+        # From python docs, if the code is None then the exit code is 0
+        # Otherwise if the code is not an integer the exit code is 1
+        code = sysexit.code
+        if code is None:
+            code = 0
+        elif not isinstance(code, int):
+            code = 1
+
+        return code
     finally:
         fscache.flush()
 
