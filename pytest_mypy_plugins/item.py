@@ -119,6 +119,32 @@ def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO
     return ReturnCodes.SUCCESS
 
 
+class OutputChecker:
+    def __init__(self, expect_fail: bool, execution_path: Path, expected_output: List[OutputMatcher]) -> None:
+        self.expect_fail = expect_fail
+        self.execution_path = execution_path
+        self.expected_output = expected_output
+
+    def check(self, ret_code: int, stdout: str, stderr: str) -> None:
+        mypy_output = stdout + stderr
+        if ret_code == ReturnCodes.FATAL_ERROR:
+            print(mypy_output, file=sys.stderr)
+            raise TypecheckAssertionError(error_message="Critical error occurred")
+
+        output_lines = []
+        for line in mypy_output.splitlines():
+            output_line = replace_fpath_with_module_name(line, rootdir=self.execution_path)
+            output_lines.append(output_line)
+        try:
+            assert_expected_matched_actual(expected=self.expected_output, actual=output_lines)
+        except TypecheckAssertionError as e:
+            if not self.expect_fail:
+                raise e
+        else:
+            if self.expect_fail:
+                raise TypecheckAssertionError("Expected failure, but test passed")
+
+
 class YamlTestItem(pytest.Item):
     def __init__(
         self,
@@ -284,23 +310,10 @@ class YamlTestItem(pytest.Item):
                 else:
                     returncode, (stdout, stderr) = self.typecheck_in_new_subprocess(execution_path, mypy_cmd_options)
 
-                mypy_output = stdout + stderr
-                if returncode == ReturnCodes.FATAL_ERROR:
-                    print(mypy_output, file=sys.stderr)
-                    raise TypecheckAssertionError(error_message="Critical error occurred")
-
-                output_lines = []
-                for line in mypy_output.splitlines():
-                    output_line = replace_fpath_with_module_name(line, rootdir=execution_path)
-                    output_lines.append(output_line)
-                try:
-                    assert_expected_matched_actual(expected=self.expected_output, actual=output_lines)
-                except TypecheckAssertionError as e:
-                    if not self.expect_fail:
-                        raise e
-                else:
-                    if self.expect_fail:
-                        raise TypecheckAssertionError("Expected failure, but test passed")
+                output_checker = OutputChecker(
+                    expect_fail=self.expect_fail, execution_path=execution_path, expected_output=self.expected_output
+                )
+                output_checker.check(returncode=returncode, stdout=stdout, stderr=stderr)
 
         finally:
             temp_dir.cleanup()
