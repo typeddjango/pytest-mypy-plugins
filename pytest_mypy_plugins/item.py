@@ -261,15 +261,15 @@ class YamlTestItem(pytest.Item):
             ) from e
 
         try:
-            execution_path = Path(temp_dir.name)
+            # extension point for derived packages
+            if (
+                hasattr(self.config.option, "mypy_extension_hook")
+                and self.config.option.mypy_extension_hook is not None
+            ):
+                self.execute_extension_hook()
 
+            execution_path = Path(temp_dir.name)
             with utils.cd(execution_path):
-                # extension point for derived packages
-                if (
-                    hasattr(self.config.option, "mypy_extension_hook")
-                    and self.config.option.mypy_extension_hook is not None
-                ):
-                    self.execute_extension_hook()
 
                 # start from main.py
                 main_file = str(execution_path / "main.py")
