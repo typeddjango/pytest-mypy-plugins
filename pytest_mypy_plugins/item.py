@@ -238,6 +238,66 @@ class OutputChecker:
                 raise TypecheckAssertionError("Expected failure, but test passed")
 
 
+class Runner:
+    def __init__(
+        self,
+        *,
+        files: List[File],
+        config: Config,
+        main_file: Path,
+        config_file: Optional[str],
+        disable_cache: bool,
+        mypy_executor: MypyExecutor,
+        output_checker: OutputChecker,
+        test_only_local_stub: bool,
+        incremental_cache_dir: str,
+    ) -> None:
+        self.files = files
+        self.config = config
+        self.main_file = main_file
+        self.config_file = config_file
+        self.mypy_executor = mypy_executor
+        self.disable_cache = disable_cache
+        self.output_checker = output_checker
+        self.test_only_local_stub = test_only_local_stub
+        self.incremental_cache_dir = incremental_cache_dir
+
+    def run(self) -> None:
+        # start from main.py
+        mypy_cmd_options = self._prepare_mypy_cmd_options()
+        mypy_cmd_options.append(str(self.main_file))
+
+        # make files
+        for file in self.files:
+            self._make_test_file(file)
+
+        returncode, (stdout, stderr) = self.mypy_executor.execute(mypy_cmd_options)
+        self.output_checker.check(returncode, stdout, stderr)
+
+    def _make_test_file(self, file: File) -> None:
+        current_directory = Path.cwd()
+        fpath = current_directory / file.path
+        fpath.parent.mkdir(parents=True, exist_ok=True)
+        fpath.write_text(file.content)
+
+    def _prepare_mypy_cmd_options(self) -> List[str]:
+        mypy_cmd_options = [
+            "--show-traceback",
+            "--no-error-summary",
+            "--no-pretty",
+            "--hide-error-context",
+        ]
+        if not self.test_only_local_stub:
+            mypy_cmd_options.append("--no-silence-site-packages")
+        if not self.disable_cache:
+            mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
+
+        if self.config_file:
+            mypy_cmd_options.append(f"--config-file={self.config_file}")
+
+        return mypy_cmd_options
+
+
 class YamlTestItem(pytest.Item):
     def __init__(
         self,
@@ -282,16 +342,6 @@ class YamlTestItem(pytest.Item):
         else:
             self.base_pyproject_toml_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
-
-    def make_test_file(self, file: File) -> None:
-        current_directory = Path.cwd()
-        fpath = current_directory / file.path
-        fpath.parent.mkdir(parents=True, exist_ok=True)
-        fpath.write_text(file.content)
-
-    def make_test_files_in_current_directory(self) -> None:
-        for file in self.files:
-            self.make_test_file(file)
 
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_file = Path(self.incremental_cache_dir)
@@ -352,21 +402,21 @@ class YamlTestItem(pytest.Item):
                     mypy_executable=mypy_executable,
                 )
 
-                # start from main.py
-                main_file = str(execution_path / "main.py")
-                mypy_cmd_options = self.prepare_mypy_cmd_options(execution_path)
-                mypy_cmd_options.append(main_file)
-
-                # make files
-                self.make_test_files_in_current_directory()
-
-                returncode, stdout, stderr = mypy_executor.execute(mypy_cmd_options)
-
                 output_checker = OutputChecker(
                     expect_fail=self.expect_fail, execution_path=execution_path, expected_output=self.expected_output
                 )
-                output_checker.check(returncode=returncode, stdout=stdout, stderr=stderr)
 
+                Runner(
+                    files=self.files,
+                    config=self.config,
+                    main_file=execution_path / "main.py",
+                    config_file=self.prepare_config_file(execution_path),
+                    disable_cache=self.disable_cache,
+                    mypy_executor=mypy_executor,
+                    output_checker=output_checker,
+                    test_only_local_stub=self.test_only_local_stub,
+                    incremental_cache_dir=self.incremental_cache_dir,
+                ).run()
         finally:
             temp_dir.cleanup()
             # remove created modules
@@ -376,24 +426,6 @@ class YamlTestItem(pytest.Item):
                     self.remove_cache_files(path.with_suffix(""))
 
         assert not os.path.exists(temp_dir.name)
-
-    def prepare_mypy_cmd_options(self, execution_path: Path) -> List[str]:
-        mypy_cmd_options = [
-            "--show-traceback",
-            "--no-error-summary",
-            "--no-pretty",
-            "--hide-error-context",
-        ]
-        if not self.test_only_local_stub:
-            mypy_cmd_options.append("--no-silence-site-packages")
-        if not self.disable_cache:
-            mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
-
-        config_file = self.prepare_config_file(execution_path)
-        if config_file:
-            mypy_cmd_options.append(f"--config-file={config_file}")
-
-        return mypy_cmd_options
 
     def prepare_config_file(self, execution_path: Path) -> Optional[str]:
         # Merge (`self.base_ini_fpath` or `base_pyproject_toml_fpath`)
