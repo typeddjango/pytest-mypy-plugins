@@ -3,9 +3,9 @@ from typing import Sequence
 
 import jsonschema
 import pytest
-import yaml
 
-from pytest_mypy_plugins.collect import validate_schema
+from pytest_mypy_plugins.collect import YamlTestFile
+from pytest_mypy_plugins.definition import validate_schema
 
 
 def get_all_yaml_files(dir_path: pathlib.Path) -> Sequence[pathlib.Path]:
@@ -22,7 +22,7 @@ files = get_all_yaml_files(pathlib.Path(__file__).parent)
 
 @pytest.mark.parametrize("yaml_file", files, ids=lambda x: x.stem)
 def test_yaml_files(yaml_file: pathlib.Path) -> None:
-    validate_schema(yaml.safe_load(yaml_file.read_text()))
+    validate_schema(YamlTestFile.read_yaml_file(yaml_file))
 
 
 def test_mypy_config_is_not_an_object() -> None:
@@ -30,6 +30,7 @@ def test_mypy_config_is_not_an_object() -> None:
         validate_schema(
             [
                 {
+                    "__line__": 0,
                     "case": "mypy_config_is_not_an_object",
                     "main": "False",
                     "mypy_config": [{"force_uppercase_builtins": True}, {"force_union_syntax": True}],
@@ -47,6 +48,7 @@ def test_closed_schema() -> None:
         validate_schema(
             [
                 {
+                    "__line__": 0,
                     "case": "mypy_config_is_not_an_object",
                     "main": "False",
                     "extra_field": 1,
