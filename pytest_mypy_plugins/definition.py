@@ -4,7 +4,8 @@ import os
 import pathlib
 import platform
 import sys
-from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Set
+from collections import defaultdict
+from typing import Any, Callable, Dict, Iterator, List, Mapping
 
 import jsonschema
 import pytest
@@ -40,7 +41,7 @@ def _parse_test_files(files: List[Mapping[str, str]]) -> List[File]:
     ]
 
 
-def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
+def _parse_environment_variables(env_vars: List[str]) -> Mapping[str, str]:
     parsed_vars: Dict[str, str] = {}
     for env_var in env_vars:
         name, _, value = env_var.partition("=")
@@ -48,25 +49,29 @@ def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
     return parsed_vars
 
 
-def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any]]:
+def _parse_parametrized(params: List[Mapping[str, object]]) -> Iterator[Mapping[str, object]]:
     if not params:
-        return [{}]
+        yield {}
+        return
 
-    parsed_params: List[Mapping[str, Any]] = []
-    known_params: Optional[Set[str]] = None
+    by_keys: Mapping[str, List[Mapping[str, object]]] = defaultdict(list)
     for idx, param in enumerate(params):
-        param_keys = set(sorted(param.keys()))
-        if not known_params:
-            known_params = param_keys
-        elif known_params.intersection(param_keys) != known_params:
+        keys = ", ".join(sorted(param))
+        if by_keys and keys not in by_keys:
             raise ValueError(
                 "All parametrized entries must have same keys."
-                f'First entry is {", ".join(known_params)} but {", ".join(param_keys)} '
+                f'First entry is {", ".join(sorted(list(by_keys)[0]))} but {keys} '
                 "was spotted at {idx} position",
             )
-        parsed_params.append({k: v for k, v in param.items() if not k.startswith("__")})
 
-    return parsed_params
+        by_keys[keys].append({k: v for k, v in param.items() if not k.startswith("__")})
+
+    if len(by_keys) != 1:
+        # This should never happen and is a defensive repetition of the above error
+        raise ValueError("All parametrized entries must have the same keys")
+
+    for param_lists in by_keys.values():
+        yield from param_lists
 
 
 @dataclasses.dataclass
@@ -88,7 +93,7 @@ class ItemDefinition:
             if " " in test_name_prefix:
                 raise ValueError(f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed.")
             else:
-                parametrized = parse_parametrized(raw_test.get("parametrized", []))
+                parametrized = _parse_parametrized(raw_test.get("parametrized", []))
 
             for params in parametrized:
                 if params:
@@ -112,7 +117,7 @@ class ItemDefinition:
                     expected_output.extend(output_lines)
 
                 starting_lineno = raw_test["__line__"]
-                extra_environment_variables = parse_environment_variables(raw_test.get("env", []))
+                extra_environment_variables = _parse_environment_variables(raw_test.get("env", []))
                 disable_cache = raw_test.get("disable_cache", False)
                 expected_output.extend(
                     utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
