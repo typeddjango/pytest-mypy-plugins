@@ -466,8 +466,5 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style="native")
 
-    def reportinfo(self) -> Tuple[Union[py.path.local, Path, str], Optional[int], str]:
-        # To support both Pytest 6.x and 7.x
-        path = getattr(self, "path", None) or getattr(self, "fspath")
-        assert path
-        return path, None, self.name
+    def reportinfo(self) -> Tuple[Union[Path, str], Optional[int], str]:
+        return self.path, None, self.name
