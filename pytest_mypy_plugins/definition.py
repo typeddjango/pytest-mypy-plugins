@@ -5,7 +5,7 @@ import pathlib
 import platform
 import sys
 from collections import defaultdict
-from typing import Any, Callable, Dict, Iterator, List, Mapping, Union
+from typing import Any, Dict, Iterator, List, Mapping, Union
 
 import jsonschema
 import pytest
@@ -97,7 +97,6 @@ class ItemDefinition:
 
     # This is set when `from_yaml` returns all the parametrized, non skipped tests
     item_params: Mapping[str, object] = dataclasses.field(default_factory=dict, init=False)
-    make_pytest_item: Callable[[pytest.Collector], pytest.Item] = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
         if not self.case.isidentifier():
@@ -105,8 +104,6 @@ class ItemDefinition:
 
     @classmethod
     def from_yaml(cls, data: List[Mapping[str, object]], *, is_closed: bool = False) -> Iterator["ItemDefinition"]:
-        from pytest_mypy_plugins.item import YamlTestItem
-
         # Validate the shape of data so we can make reasonable assumptions
         validate_schema(data, is_closed=is_closed)
 
@@ -154,23 +151,11 @@ class ItemDefinition:
 
             nxt = cls(**kwargs)
             for params in parametrized:
-                self = dataclasses.replace(nxt)
-                self.item_params = params
+                clone = dataclasses.replace(nxt)
+                clone.item_params = params
 
-                if not self._skipped:
-                    self.make_pytest_item = lambda parent: YamlTestItem.from_parent(
-                        parent,
-                        name=self.test_name,
-                        files=self.all_files,
-                        starting_lineno=self.starting_lineno,
-                        environment_variables=self.extra_environment_variables,
-                        disable_cache=self.disable_cache,
-                        expected_output=self.expected_output,
-                        parsed_test_data=self.raw_test,
-                        mypy_config=self.additional_mypy_config,
-                        expect_fail=self.expect_fail,
-                    )
-                    yield self
+                if not clone._skipped:
+                    yield clone
 
     @property
     def _skipped(self) -> bool:
@@ -213,4 +198,17 @@ class ItemDefinition:
         return utils.render_template(template=self.mypy_config, data=self.item_params)
 
     def pytest_item(self, parent: pytest.Collector) -> pytest.Item:
-        return self.make_pytest_item(parent)
+        from pytest_mypy_plugins.item import YamlTestItem
+
+        return YamlTestItem.from_parent(
+            parent,
+            name=self.test_name,
+            files=self.all_files,
+            starting_lineno=self.starting_lineno,
+            environment_variables=self.extra_environment_variables,
+            disable_cache=self.disable_cache,
+            expected_output=self.expected_output,
+            parsed_test_data=self.raw_test,
+            mypy_config=self.additional_mypy_config,
+            expect_fail=self.expect_fail,
+        )
