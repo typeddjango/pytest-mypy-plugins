@@ -8,7 +8,6 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, Tuple, Union
 
-import py
 import pytest
 from _pytest._code import ExceptionInfo
 from _pytest._code.code import ReprEntry, ReprFileLocation, TerminalRepr
@@ -445,18 +444,18 @@ class YamlTestItem(pytest.Item):
     def repr_failure(
         self, excinfo: ExceptionInfo[BaseException], style: Optional["_TracebackStyle"] = None
     ) -> Union[str, TerminalRepr]:
-        if excinfo.errisinstance(SystemExit):
+        if isinstance(excinfo.value, SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
             # enough context about what happened so that a stack trace is not useful.
             # In particular, uncaught exceptions during semantic analysis or type checking
             # call exit() and they already print out a stack trace.
             return excinfo.exconly(tryshort=True)
-        elif excinfo.errisinstance(TypecheckAssertionError):
+        elif isinstance(excinfo.value, TypecheckAssertionError):
             # with traceback removed
             exception_repr = excinfo.getrepr(style="short")
             exception_repr.reprcrash.message = ""  # type: ignore
             repr_file_location = ReprFileLocation(
-                path=self.fspath, lineno=self.starting_lineno + excinfo.value.lineno, message=""  # type: ignore
+                path=str(self.path), lineno=self.starting_lineno + excinfo.value.lineno, message=""
             )
             repr_tb_entry = TraceLastReprEntry(
                 exception_repr.reprtraceback.reprentries[-1].lines[1:], None, None, repr_file_location, "short"

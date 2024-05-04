@@ -18,7 +18,6 @@ from typing import (
 )
 
 import jsonschema
-import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
@@ -173,7 +172,7 @@ class YamlTestFile(pytest.File):
 
 def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:
     if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
-        return YamlTestFile.from_parent(parent, path=file_path, fspath=None)
+        return YamlTestFile.from_parent(parent, path=file_path)
     return None
 
 
