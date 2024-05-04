@@ -5,7 +5,7 @@ import pathlib
 import platform
 import sys
 from collections import defaultdict
-from typing import Any, Callable, Dict, Iterator, List, Mapping
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Union
 
 import jsonschema
 import pytest
@@ -80,34 +80,96 @@ class ItemDefinition:
     A dataclass representing a single test in the yaml file
     """
 
-    make_pytest_item: Callable[[pytest.Collector], pytest.Item]
+    case: str
+    main: str
+    files: List[File]
+    raw_test: Mapping[str, object]
+    starting_lineno: int
+    additional_properties: Mapping[str, object]
+    extra_environment_variables: Mapping[str, object]
+
+    out: str = ""
+    skip: Union[bool, str] = False
+    regex: bool = False
+    mypy_config: str = ""
+    expect_fail: bool = False
+    disable_cache: bool = False
+
+    # This is set when `from_yaml` returns all the parametrized, non skipped tests
+    item_params: Mapping[str, object] = dataclasses.field(default_factory=dict, init=False)
+    make_pytest_item: Callable[[pytest.Collector], pytest.Item] = dataclasses.field(init=False)
+
+    def __post_init__(self) -> None:
+        if not self.case.isidentifier():
+            raise ValueError(f"Invalid test name {self.case!r}, only '[a-zA-Z0-9_]' is allowed.")
 
     @classmethod
-    def from_yaml(cls, data: List[Mapping[str, Any]], *, is_closed: bool = False) -> Iterator["ItemDefinition"]:
+    def from_yaml(cls, data: List[Mapping[str, object]], *, is_closed: bool = False) -> Iterator["ItemDefinition"]:
         from pytest_mypy_plugins.item import YamlTestItem
 
+        # Validate the shape of data so we can make reasonable assumptions
         validate_schema(data, is_closed=is_closed)
 
-        for raw_test in data:
-            test_name_prefix = raw_test["case"]
-            if " " in test_name_prefix:
-                raise ValueError(f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed.")
-            else:
-                parametrized = _parse_parametrized(raw_test.get("parametrized", []))
+        for _raw_item in data:
+            raw_item = dict(_raw_item)
 
+            additional_properties: Dict[str, object] = {}
+            kwargs: Dict[str, Any] = {
+                "raw_test": _raw_item,
+                "additional_properties": additional_properties,
+            }
+
+            fields = [f.name for f in dataclasses.fields(cls)]
+
+            # Convert the injected __line__ into starting_lineno
+            starting_lineno = raw_item["__line__"]
+            if not isinstance(starting_lineno, int):
+                raise RuntimeError("__line__ should have been set as an integer")
+            kwargs["starting_lineno"] = starting_lineno
+
+            # Make sure we have a list of File objects for files
+            files = raw_item.pop("files", None)
+            if not isinstance(files, list):
+                files = []
+            kwargs["files"] = _parse_test_files(files)
+
+            # Get our extra environment variables
+            env = raw_item.pop("env", None)
+            if not isinstance(env, list):
+                env = []
+            kwargs["extra_environment_variables"] = _parse_environment_variables(env)
+
+            # Get the parametrized options
+            parametrized = raw_item.pop("parametrized", None)
+            if not isinstance(parametrized, list):
+                parametrized = []
+            parametrized = _parse_parametrized(parametrized)
+
+            # Set the rest of the options
+            for k, v in raw_item.items():
+                if k in fields:
+                    kwargs[k] = v
+                else:
+                    additional_properties[k] = v
+
+            nxt = cls(**kwargs)
             for params in parametrized:
-                if params:
-                    test_name_suffix = ",".join(f"{k}={v}" for k, v in params.items())
+                self = dataclasses.replace(nxt)
+                self.item_params = params
+
+                test_name_prefix = self.case
+                if self.item_params:
+                    test_name_suffix = ",".join(f"{k}={v}" for k, v in self.item_params.items())
                     test_name_suffix = f"[{test_name_suffix}]"
                 else:
                     test_name_suffix = ""
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
-                main_content = utils.render_template(template=raw_test["main"], data=params)
+                main_content = utils.render_template(template=self.main, data=self.item_params)
                 main_file = File(path="main.py", content=main_content)
-                test_files = [main_file] + _parse_test_files(raw_test.get("files", []))
-                expect_fail = raw_test.get("expect_fail", False)
-                regex = raw_test.get("regex", False)
+                test_files = [main_file] + self.files
+                expect_fail = self.expect_fail
+                regex = self.regex
 
                 expected_output = []
                 for test_file in test_files:
@@ -116,30 +178,27 @@ class ItemDefinition:
                     )
                     expected_output.extend(output_lines)
 
-                starting_lineno = raw_test["__line__"]
-                extra_environment_variables = _parse_environment_variables(raw_test.get("env", []))
-                disable_cache = raw_test.get("disable_cache", False)
-                expected_output.extend(
-                    utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
-                )
-                additional_mypy_config = utils.render_template(template=raw_test.get("mypy_config", ""), data=params)
+                starting_lineno = self.starting_lineno
+                extra_environment_variables = self.extra_environment_variables
+                disable_cache = self.disable_cache
+                expected_output.extend(utils.extract_output_matchers_from_out(self.out, self.item_params, regex=regex))
+                additional_mypy_config = utils.render_template(template=self.mypy_config, data=self.item_params)
 
-                skip = cls._eval_skip(str(raw_test.get("skip", "False")))
+                skip = cls._eval_skip(str(self.raw_test.get("skip", "False")))
                 if not skip:
-                    yield cls(
-                        make_pytest_item=lambda parent: YamlTestItem.from_parent(
-                            parent,
-                            name=test_name,
-                            files=test_files,
-                            starting_lineno=starting_lineno,
-                            environment_variables=extra_environment_variables,
-                            disable_cache=disable_cache,
-                            expected_output=expected_output,
-                            parsed_test_data=raw_test,
-                            mypy_config=additional_mypy_config,
-                            expect_fail=expect_fail,
-                        )
+                    self.make_pytest_item = lambda parent: YamlTestItem.from_parent(
+                        parent,
+                        name=test_name,
+                        files=test_files,
+                        starting_lineno=starting_lineno,
+                        environment_variables=extra_environment_variables,
+                        disable_cache=disable_cache,
+                        expected_output=expected_output,
+                        parsed_test_data=self.raw_test,
+                        mypy_config=additional_mypy_config,
+                        expect_fail=expect_fail,
                     )
+                    yield self
 
     @classmethod
     def _eval_skip(cls, skip_if: str) -> bool:
