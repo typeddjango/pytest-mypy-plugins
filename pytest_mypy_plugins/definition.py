@@ -159,7 +159,14 @@ class ItemDefinition:
 
     @property
     def _skipped(self) -> bool:
-        return eval(str(self.skip), {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
+        if isinstance(self.skip, bool):
+            return self.skip
+        elif self.skip == "True":
+            return True
+        elif self.skip == "False":
+            return False
+        else:
+            return eval(self.skip, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
 
     @property
     def test_name(self) -> str:
