@@ -157,52 +157,60 @@ class ItemDefinition:
                 self = dataclasses.replace(nxt)
                 self.item_params = params
 
-                test_name_prefix = self.case
-                if self.item_params:
-                    test_name_suffix = ",".join(f"{k}={v}" for k, v in self.item_params.items())
-                    test_name_suffix = f"[{test_name_suffix}]"
-                else:
-                    test_name_suffix = ""
-
-                test_name = f"{test_name_prefix}{test_name_suffix}"
-                main_content = utils.render_template(template=self.main, data=self.item_params)
-                main_file = File(path="main.py", content=main_content)
-                test_files = [main_file] + self.files
-                expect_fail = self.expect_fail
-                regex = self.regex
-
-                expected_output = []
-                for test_file in test_files:
-                    output_lines = utils.extract_output_matchers_from_comments(
-                        test_file.path, test_file.content.split("\n"), regex=regex
-                    )
-                    expected_output.extend(output_lines)
-
-                starting_lineno = self.starting_lineno
-                extra_environment_variables = self.extra_environment_variables
-                disable_cache = self.disable_cache
-                expected_output.extend(utils.extract_output_matchers_from_out(self.out, self.item_params, regex=regex))
-                additional_mypy_config = utils.render_template(template=self.mypy_config, data=self.item_params)
-
-                skip = cls._eval_skip(str(self.raw_test.get("skip", "False")))
-                if not skip:
+                if not self._skipped:
                     self.make_pytest_item = lambda parent: YamlTestItem.from_parent(
                         parent,
-                        name=test_name,
-                        files=test_files,
-                        starting_lineno=starting_lineno,
-                        environment_variables=extra_environment_variables,
-                        disable_cache=disable_cache,
-                        expected_output=expected_output,
+                        name=self.test_name,
+                        files=self.all_files,
+                        starting_lineno=self.starting_lineno,
+                        environment_variables=self.extra_environment_variables,
+                        disable_cache=self.disable_cache,
+                        expected_output=self.expected_output,
                         parsed_test_data=self.raw_test,
-                        mypy_config=additional_mypy_config,
-                        expect_fail=expect_fail,
+                        mypy_config=self.additional_mypy_config,
+                        expect_fail=self.expect_fail,
                     )
                     yield self
 
-    @classmethod
-    def _eval_skip(cls, skip_if: str) -> bool:
-        return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
+    @property
+    def _skipped(self) -> bool:
+        return eval(str(self.skip), {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
+
+    @property
+    def test_name(self) -> str:
+        test_name_prefix = self.case
+
+        test_name_suffix = ""
+        if self.item_params:
+            test_name_suffix = ",".join(f"{k}={v}" for k, v in self.item_params.items())
+            test_name_suffix = f"[{test_name_suffix}]"
+
+        return f"{test_name_prefix}{test_name_suffix}"
+
+    @property
+    def main_file(self) -> File:
+        content = utils.render_template(template=self.main, data=self.item_params)
+        return File(path="main.py", content=content)
+
+    @property
+    def all_files(self) -> List[File]:
+        return [self.main_file] + self.files
+
+    @property
+    def expected_output(self) -> List[utils.OutputMatcher]:
+        expected_output: List[utils.OutputMatcher] = []
+        for test_file in self.all_files:
+            output_lines = utils.extract_output_matchers_from_comments(
+                test_file.path, test_file.content.split("\n"), regex=self.regex
+            )
+            expected_output.extend(output_lines)
+
+        expected_output.extend(utils.extract_output_matchers_from_out(self.out, self.item_params, regex=self.regex))
+        return expected_output
+
+    @property
+    def additional_mypy_config(self) -> str:
+        return utils.render_template(template=self.mypy_config, data=self.item_params)
 
     def pytest_item(self, parent: pytest.Collector) -> pytest.Item:
         return self.make_pytest_item(parent)
