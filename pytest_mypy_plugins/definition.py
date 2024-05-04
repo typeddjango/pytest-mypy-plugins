@@ -4,7 +4,6 @@ import os
 import pathlib
 import platform
 import sys
-from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Set
 
 import jsonschema
@@ -13,10 +12,10 @@ import pytest
 from . import utils
 
 
-@dataclass
+@dataclasses.dataclass
 class File:
     path: str
-    content: str
+    content: str = ""
 
 
 def validate_schema(data: List[Mapping[str, Any]], *, is_closed: bool = False) -> None:
@@ -31,13 +30,14 @@ def validate_schema(data: List[Mapping[str, Any]], *, is_closed: bool = False) -
     jsonschema.validate(instance=data, schema=schema)
 
 
-def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
-    files: List[File] = []
-    for test_file in test_files:
-        path = test_file.get("path", "main.py")
-        file = File(path=path, content=test_file.get("content", ""))
-        files.append(file)
-    return files
+def _parse_test_files(files: List[Mapping[str, str]]) -> List[File]:
+    return [
+        File(
+            path=file["path"],
+            **({} if "content" not in file else {"content": file["content"]}),
+        )
+        for file in files
+    ]
 
 
 def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
@@ -100,7 +100,7 @@ class ItemDefinition:
                 test_name = f"{test_name_prefix}{test_name_suffix}"
                 main_content = utils.render_template(template=raw_test["main"], data=params)
                 main_file = File(path="main.py", content=main_content)
-                test_files = [main_file] + parse_test_files(raw_test.get("files", []))
+                test_files = [main_file] + _parse_test_files(raw_test.get("files", []))
                 expect_fail = raw_test.get("expect_fail", False)
                 regex = raw_test.get("regex", False)
 
