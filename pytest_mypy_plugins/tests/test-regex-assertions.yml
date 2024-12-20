@@ -54,3 +54,18 @@
   main: |
     a = 'hello'
     reveal_type(a)  # NR: .*banana.*
+
+- case: regex_against_callable_comment
+  main: |
+    def foo(bar: str, ham: int = 42) -> set[str | int]:
+      return {bar, ham}
+    reveal_type(foo)  # NR: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+
+- case: regex_against_callable_out
+  regex: yes
+  main: |
+    def foo(bar: str, ham: int = 42) -> set[str | int]:
+      return {bar, ham}
+    reveal_type(foo)
+  out: |
+    main:3: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
