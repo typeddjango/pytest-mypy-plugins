@@ -72,4 +72,4 @@
       return {bar, ham}
     reveal_type(foo)
   out: |
-    main:3: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+    main:5: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
