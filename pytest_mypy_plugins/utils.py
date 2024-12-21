@@ -326,7 +326,7 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     lines = render_template(out, params).split("\n")
     for line in lines:
         match = re.search(
-            r"^(?P<fname>.*):(?P<lnum>\d*): (?P<severity>.*):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
+            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
         )
         if match:
             if match.group("severity") == "E":

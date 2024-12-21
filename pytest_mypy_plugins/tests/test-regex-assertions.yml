@@ -54,3 +54,22 @@
   main: |
     a = 'hello'
     reveal_type(a)  # NR: .*banana.*
+
+- case: regex_against_callable_comment
+  main: |
+    from typing import Set, Union
+
+    def foo(bar: str, ham: int = 42) -> Set[Union[str, int]]:
+      return {bar, ham}
+    reveal_type(foo)  # NR: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+
+- case: regex_against_callable_out
+  regex: yes
+  main: |
+    from typing import Set, Union
+
+    def foo(bar: str, ham: int = 42) -> Set[Union[str, int]]:
+      return {bar, ham}
+    reveal_type(foo)
+  out: |
+    main:5: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
