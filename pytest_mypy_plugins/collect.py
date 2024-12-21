@@ -168,7 +168,7 @@ class YamlTestFile(pytest.File):
                     )
 
     def _eval_skip(self, skip_if: str) -> bool:
-        return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
+        return bool(eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform}))
 
 
 def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:

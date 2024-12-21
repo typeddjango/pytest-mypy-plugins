@@ -78,7 +78,7 @@ class OutputMatcher:
                 )
                 + self.message
             )
-            return regex.match(pattern, actual)
+            return bool(regex.match(pattern, actual))
         else:
             return str(self) == actual
 

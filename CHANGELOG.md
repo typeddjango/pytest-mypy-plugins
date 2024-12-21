@@ -1,6 +1,19 @@
 # Version history
 
 
+## 3.2.0
+
+### Features
+
+- Drops `python3.8` support
+- Adds official `python3.13` support
+
+### Bugfixes
+
+- Fixes regex for colon output `:`, #155
+- Fixes internal error with `TraceLastReprEntry`, #154
+
+
 ## 3.1.2
 
 ### Bugfixes

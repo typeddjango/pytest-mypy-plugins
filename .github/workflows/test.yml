@@ -21,10 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        pytest-version: ["~=7.2", "~=8.1"]
-        # TODO: remove after several new versions of mypy
-        mypy-version: ["~=1.7", "~=1.10"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        pytest-version: ["~=7.2", "~=8.3"]
 
     steps:
     - uses: actions/checkout@v4
@@ -38,8 +36,6 @@ jobs:
         pip install -e .
         # Force correct `pytest` version for different envs:
         pip install -U "pytest${{ matrix.pytest-version }}"
-        # Force correct `mypy` version:
-        pip install -U "mypy${{ matrix.mypy-version }}"
     - name: Run tests
       run: pytest
 
@@ -59,5 +55,5 @@ jobs:
     - name: Run linters
       run: |
         mypy .
-        black --check pytest_mypy_plugins setup.py
+        black --check .
         isort --check --diff .
