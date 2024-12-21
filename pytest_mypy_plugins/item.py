@@ -6,7 +6,17 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, TextIO, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import py
 import pytest
@@ -26,7 +36,6 @@ from pytest_mypy_plugins.utils import (
     assert_expected_matched_actual,
     fname_to_module,
 )
-
 
 if TYPE_CHECKING:
     # pytest 8.3.0 renamed _TracebackStyle to TracebackStyle, but there is no syntax
