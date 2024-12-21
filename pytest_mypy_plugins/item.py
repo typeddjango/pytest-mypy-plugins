@@ -6,7 +6,17 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import py
 import pytest
@@ -18,9 +28,6 @@ from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
 
-if TYPE_CHECKING:
-    from _pytest._code.code import _TracebackStyle
-
 from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
 from pytest_mypy_plugins.utils import (
@@ -29,6 +36,13 @@ from pytest_mypy_plugins.utils import (
     assert_expected_matched_actual,
     fname_to_module,
 )
+
+if TYPE_CHECKING:
+    # pytest 8.3.0 renamed _TracebackStyle to TracebackStyle, but there is no syntax
+    # to assert what version you have using static conditions, so it has to be
+    # manually re-defined here. Once minimum supported pytest version is >= 8.3.0,
+    # the following can be replaced with `from _pytest._code.code import TracebackStyle`
+    TracebackStyle = Literal["long", "short", "line", "no", "native", "value", "auto"]
 
 
 class TraceLastReprEntry(ReprEntry):
@@ -443,7 +457,7 @@ class YamlTestItem(pytest.Item):
         return None
 
     def repr_failure(
-        self, excinfo: ExceptionInfo[BaseException], style: Optional["_TracebackStyle"] = None
+        self, excinfo: ExceptionInfo[BaseException], style: Optional["TracebackStyle"] = None
     ) -> Union[str, TerminalRepr]:
         if excinfo.errisinstance(SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
