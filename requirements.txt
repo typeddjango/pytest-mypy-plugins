@@ -3,4 +3,6 @@ isort
 types-decorator
 types-PyYAML
 types-setuptools
+types-regex
+mypy==1.13
 -e .
