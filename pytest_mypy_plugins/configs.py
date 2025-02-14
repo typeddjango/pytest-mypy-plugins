@@ -32,7 +32,7 @@ def join_toml_configs(
         with open(base_pyproject_toml_fpath) as f:
             toml_config = tomlkit.parse(f.read())
     else:
-        # Emtpy document with `[tool.mypy` empty table,
+        # Empty document with `[tool.mypy]` empty table,
         # useful for overrides further.
         toml_config = tomlkit.document()
 
