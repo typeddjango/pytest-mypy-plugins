@@ -406,7 +406,7 @@ class YamlTestItem(pytest.Item):
             ):
                 self.execute_extension_hook()
 
-            execution_path = Path(temp_dir.name)
+            execution_path = Path(temp_dir.name).absolute()
             with utils.cd(execution_path):
                 mypy_executor = MypyExecutor(
                     same_process=self.same_process,
