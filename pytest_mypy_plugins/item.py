@@ -362,13 +362,12 @@ class YamlTestItem(pytest.Item):
         cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
         for part in fpath_no_suffix.parts:
             cache_file /= part
-
-        data_json_file = cache_file.with_suffix(".data.json")
-        if data_json_file.exists():
-            data_json_file.unlink()
-        meta_json_file = cache_file.with_suffix(".meta.json")
-        if meta_json_file.exists():
-            meta_json_file.unlink()
+            data_json_file = cache_file.with_suffix(".data.json")
+            if data_json_file.exists():
+                data_json_file.unlink()
+            meta_json_file = cache_file.with_suffix(".meta.json")
+            if meta_json_file.exists():
+                meta_json_file.unlink()
 
         for parent_dir in cache_file.parents:
             if (
