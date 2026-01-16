@@ -143,7 +143,11 @@ CACHE_FILES_REMOVED_TEST_DATA = {
 }
 
 
-@pytest.mark.parametrize(("contents", "module_fpaths_no_suffix"), CACHE_FILES_REMOVED_TEST_DATA.values(), ids=CACHE_FILES_REMOVED_TEST_DATA.keys())
+@pytest.mark.parametrize(
+    ("contents", "module_fpaths_no_suffix"),
+    CACHE_FILES_REMOVED_TEST_DATA.values(),
+    ids=CACHE_FILES_REMOVED_TEST_DATA.keys(),
+)
 def test_cache_files_removed(temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...]) -> None:
     """Tests that cache files associated with ``files`` in a test case get removed"""
 
