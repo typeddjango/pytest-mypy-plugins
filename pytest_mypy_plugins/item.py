@@ -360,7 +360,9 @@ class YamlTestItem(pytest.Item):
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_file = Path(self.incremental_cache_dir)
         cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
-        for part in fpath_no_suffix.parts:
+        for i, part in enumerate(fpath_no_suffix.parts):
+            if (i == 0) and part.endswith("-stubs") and ((cache_file / part.removesuffix("-stubs")).is_dir()):
+                part = part.removesuffix("-stubs")
             cache_file /= part
             data_json_file = cache_file.with_suffix(".data.json")
             if data_json_file.exists():
