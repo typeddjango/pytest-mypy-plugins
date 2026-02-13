@@ -7,42 +7,53 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        pytest-version: ["~=7.2", "~=8.3"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
-        pip install -r dev-requirements.txt
+        pip install -e .
+        # Force correct `pytest` version for different envs:
+        pip install -U "pytest${{ matrix.pytest-version }}"
     - name: Run tests
-      run: pytest 
+      run: pytest
 
   lint:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v6
+    - name: Set up Python
+      uses: actions/setup-python@v6
       with:
-        python-version: 3.7
+        python-version: 3.12
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
-        pip install -r dev-requirements.txt
+        pip install -r requirements.txt
     - name: Run linters
       run: |
         mypy .
-        black --check pytest_mypy_plugins setup.py
+        black --check .
         isort --check --diff .

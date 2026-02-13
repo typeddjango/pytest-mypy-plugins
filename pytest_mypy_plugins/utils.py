@@ -1,27 +1,19 @@
 # Borrowed from Pew.
 # See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
-import contextlib
 import inspect
-import io
 import os
 import re
 import sys
 from dataclasses import dataclass
+from itertools import zip_longest
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
-import chevron
+import jinja2
 import regex
 from decorator import contextmanager
+
+_rendering_env = jinja2.Environment()
 
 
 @contextmanager
@@ -86,7 +78,7 @@ class OutputMatcher:
                 )
                 + self.message
             )
-            return regex.match(pattern, actual)
+            return bool(regex.match(pattern, actual))
         else:
             return str(self) == actual
 
@@ -129,20 +121,6 @@ def remove_common_prefix(lines: List[str]) -> List[str]:
     return cleaned_lines
 
 
-def _num_skipped_prefix_lines(a1: List[OutputMatcher], a2: List[str]) -> int:
-    num_eq = 0
-    while num_eq < min(len(a1), len(a2)) and a1[num_eq].matches(a2[num_eq]):
-        num_eq += 1
-    return max(0, num_eq - 4)
-
-
-def _num_skipped_suffix_lines(a1: List[OutputMatcher], a2: List[str]) -> int:
-    num_eq = 0
-    while num_eq < min(len(a1), len(a2)) and a1[-num_eq - 1].matches(a2[-num_eq - 1]):
-        num_eq += 1
-    return max(0, num_eq - 4)
-
-
 def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
     """Align s1 and s2 so that the their first difference is highlighted.
 
@@ -166,6 +144,8 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
 
     error_message += "Alignment of first line difference:\n"
 
+    assert s1 != s2
+
     trunc = False
     while s1[:30] == s2[:30]:
         s1 = s1[10:]
@@ -182,8 +162,8 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
         extra = "..."
 
     # Write a chunk of both lines, aligned.
-    error_message += "  E: {}{}\n".format(s1[:maxw], extra)
-    error_message += "  A: {}{}\n".format(s2[:maxw], extra)
+    error_message += f"  E: {s1[:maxw]}{extra}\n"
+    error_message += f"  A: {s2[:maxw]}{extra}\n"
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
@@ -206,15 +186,15 @@ def remove_empty_lines(lines: List[str]) -> List[str]:
 
 
 def sorted_by_file_and_line(lines: List[str]) -> List[str]:
-    def extract_parts_as_tuple(line: str) -> Tuple[str, int, str]:
+    def extract_parts_as_tuple(line: str) -> Tuple[str, int]:
         if len(line.split(":", maxsplit=2)) < 3:
-            return "", 0, ""
+            return "", 0
 
-        fname, line_number, contents = line.split(":", maxsplit=2)
+        fname, line_number, _ = line.split(":", maxsplit=2)
         try:
-            return fname, int(line_number), contents
+            return fname, int(line_number)
         except ValueError:
-            return "", 0, ""
+            return "", 0
 
     return sorted(lines, key=extract_parts_as_tuple)
 
@@ -224,78 +204,80 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
 
     Display any differences in a human-readable form.
     """
+
+    def format_mismatched_line(line: str) -> str:
+        return f"  {str(line):<45} (diff)"
+
+    def format_matched_line(line: str, width: int = 100) -> str:
+        return f" {line[:width]}..." if len(line) > width else f" {line}"
+
+    def format_error_lines(lines: List[str]) -> str:
+        return "\n".join(lines) if lines else "  (empty)"
+
     expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
     actual = sorted_by_file_and_line(remove_empty_lines(actual))
 
     actual = remove_common_prefix(actual)
-    error_message = ""
 
-    if not all(e.matches(a) for e, a in zip(expected, actual)):
-        num_skip_start = _num_skipped_prefix_lines(expected, actual)
-        num_skip_end = _num_skipped_suffix_lines(expected, actual)
+    diff_lines: Dict[int, Tuple[OutputMatcher, str]] = {
+        i: (e, a)
+        for i, (e, a) in enumerate(zip_longest(expected, actual))
+        if e is None or a is None or not e.matches(a)
+    }
 
-        error_message += "Expected:\n"
+    if diff_lines:
+        first_diff_line = min(diff_lines.keys())
+        last_diff_line = max(diff_lines.keys())
 
-        # If omit some lines at the beginning, indicate it by displaying a line
-        # with '...'.
-        if num_skip_start > 0:
-            error_message += "  ...\n"
+        expected_message_lines = []
+        actual_message_lines = []
 
-        # Keep track of the first different line.
-        first_diff = -1
+        for i in range(first_diff_line, last_diff_line + 1):
+            if i in diff_lines:
+                expected_line, actual_line = diff_lines[i]
+                if expected_line:
+                    expected_message_lines.append(format_mismatched_line(str(expected_line)))
+                if actual_line:
+                    actual_message_lines.append(format_mismatched_line(actual_line))
 
-        # Display only this many first characters of identical lines.
-        width = 100
-
-        for i in range(num_skip_start, len(expected) - num_skip_end):
-            if i >= len(actual) or not expected[i].matches(actual[i]):
-                if first_diff < 0:
-                    first_diff = i
-                error_message += "  {:<45} (diff)".format(expected[i])
             else:
-                e = expected[i]
-                error_message += "  " + str(e)[:width]
-                if len(e) > width:
-                    error_message += "..."
-            error_message += "\n"
-        if num_skip_end > 0:
-            error_message += "  ...\n"
+                expected_line, actual_line = expected[i], actual[i]
+                actual_message_lines.append(format_matched_line(actual_line))
+                expected_message_lines.append(format_matched_line(str(expected_line)))
 
-        error_message += "Actual:\n"
+        first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
 
-        if num_skip_start > 0:
-            error_message += "  ...\n"
+        failure_reason = "Output is not expected" if actual and not expected else "Invalid output"
 
-        for j in range(num_skip_start, len(actual) - num_skip_end):
-            if j >= len(expected) or not expected[j].matches(actual[j]):
-                error_message += "  {:<45} (diff)".format(actual[j])
-            else:
-                a = actual[j]
-                error_message += "  " + a[:width]
-                if len(a) > width:
-                    error_message += "..."
-            error_message += "\n"
-        if not actual:
-            error_message += "  (empty)\n"
-        if num_skip_end > 0:
-            error_message += "  ...\n"
+        if actual_message_lines and expected_message_lines:
+            if first_diff_line > 0:
+                expected_message_lines.insert(0, "  ...")
+                actual_message_lines.insert(0, "  ...")
 
-        error_message += "\n"
+            if last_diff_line < len(actual) - 1 and last_diff_line < len(expected) - 1:
+                expected_message_lines.append("  ...")
+                actual_message_lines.append("  ...")
 
-        if 0 <= first_diff < len(actual) and (
-            len(expected[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
-            or len(actual[first_diff]) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+        error_message = "Actual:\n{}\nExpected:\n{}\n".format(
+            format_error_lines(actual_message_lines), format_error_lines(expected_message_lines)
+        )
+
+        if expected_line and expected_line.regex:
+            error_message += "The actual output does not match the expected regex."
+        elif (
+            first_diff_actual is not None
+            and first_diff_expected is not None
+            and (
+                len(first_diff_actual) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+                or len(str(first_diff_expected)) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+            )
         ):
-            # Display message that helps visualize the differences between two
-            # long lines.
-            error_message = _add_aligned_message(str(expected[first_diff]), actual[first_diff], error_message)
+            error_message = _add_aligned_message(str(first_diff_expected), first_diff_actual, error_message)
 
-        if len(expected) == 0:
-            raise TypecheckAssertionError(f"Output is not expected: \n{error_message}")
-
-        first_failure = expected[first_diff]
-        if first_failure:
-            raise TypecheckAssertionError(error_message=f"Invalid output: \n{error_message}", lineno=first_failure.lnum)
+        raise TypecheckAssertionError(
+            error_message=f"{failure_reason}: \n{error_message}",
+            lineno=first_diff_expected.lnum if first_diff_expected else 0,
+        )
 
 
 def extract_output_matchers_from_comments(fname: str, input_lines: List[str], regex: bool) -> List[OutputMatcher]:
@@ -344,7 +326,7 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     lines = render_template(out, params).split("\n")
     for line in lines:
         match = re.search(
-            r"^(?P<fname>.*):(?P<lnum>\d*): (?P<severity>.*):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
+            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
         )
         if match:
             if match.group("severity") == "E":
@@ -370,7 +352,11 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
 
 
 def render_template(template: str, data: Mapping[str, Any]) -> str:
-    return chevron.render(template=template, data={k: v if v is not None else "None" for k, v in data.items()})
+    if _rendering_env.variable_start_string not in template:
+        return template
+
+    t: jinja2.environment.Template = _rendering_env.from_string(template)
+    return t.render({k: v if v is not None else "None" for k, v in data.items()})
 
 
 def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
@@ -395,15 +381,3 @@ def cd(path: Union[str, Path]) -> Iterator[None]:
         yield
     finally:
         os.chdir(prev_cwd)
-
-
-@contextmanager
-def capture_std_streams() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
-    """Context manager to temporarily capture stdout and stderr.
-
-    Returns ``(stdout, stderr)``.
-    """
-    out = io.StringIO()
-    err = io.StringIO()
-    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-        yield out, err

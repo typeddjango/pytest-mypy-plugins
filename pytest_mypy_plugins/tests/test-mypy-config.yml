@@ -1,0 +1,9 @@
+# Also used in `test_explicit_configs.py`
+
+- case: custom_mypy_config_disallow_any_explicit_set
+  expect_fail: yes
+  main: |
+    from typing import Any
+    a: Any = None  # should raise an error
+  mypy_config: |
+    disallow_any_explicit = true

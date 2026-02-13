@@ -2,4 +2,7 @@ black
 isort
 types-decorator
 types-PyYAML
+types-setuptools
+types-regex
+mypy==1.19.1
 -e .

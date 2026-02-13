@@ -1,0 +1,75 @@
+- case: expected_message_regex
+  regex: yes
+  main: |
+    a = 1
+    b = 'hello'
+
+    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(b)  # N: .*str.*
+
+- case: expected_message_regex_with_out
+  regex: yes
+  main: |
+    a = 'abc'
+    reveal_type(a)
+  out: |
+    main:2: note: .*str.*
+
+- case: regex_with_out_does_not_hang
+  expect_fail: yes
+  regex: yes
+  main: |
+    'abc'.split(4)
+  out: |
+    main:1: error: Argument 1 to "split" of "str" has incompatible type "int"; expected "Optional[str]"
+
+- case: regex_with_comment_does_not_hang
+  expect_fail: yes
+  regex: yes
+  main: |
+    a = 'abc'.split(4)  # E: Argument 1 to "split" of "str" has incompatible type "int"; expected "Optional[str]"
+
+- case: expected_single_message_regex
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*str.*
+
+- case: rexex_but_not_turned_on
+  expect_fail: yes
+  main: |
+    a = 'hello'
+    reveal_type(a)  # N: .*str.*
+
+- case: rexex_but_turned_off
+  expect_fail: yes
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # N: .*str.*
+
+- case: regex_does_not_match
+  expect_fail: yes
+  regex: no
+  main: |
+    a = 'hello'
+    reveal_type(a)  # NR: .*banana.*
+
+- case: regex_against_callable_comment
+  main: |
+    from typing import Set, Union
+
+    def foo(bar: str, ham: int = 42) -> Set[Union[str, int]]:
+      return {bar, ham}
+    reveal_type(foo)  # NR: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+
+- case: regex_against_callable_out
+  regex: yes
+  main: |
+    from typing import Set, Union
+
+    def foo(bar: str, ham: int = 42) -> Set[Union[str, int]]:
+      return {bar, ham}
+    reveal_type(foo)
+  out: |
+    main:5: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"

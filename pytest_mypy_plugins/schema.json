@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/typeddjango/pytest-mypy-plugins/master/pytest_mypy_plugins/schema.json",
+  "title": "pytest-mypy-plugins test file",
+  "description": "JSON Schema for a pytest-mypy-plugins test file",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "case": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_]+$",
+        "description": "Name of the test case, MUST comply to the `^[a-zA-Z0-9_]+$` pattern.",
+        "examples": [
+          {
+            "case": "TestCase1"
+          },
+          {
+            "case": "999"
+          },
+          {
+            "case": "test_case_1"
+          }
+        ]
+      },
+      "main": {
+        "type": "string",
+        "description": "Portion of the code as if written in `.py` file. Must be valid Python code.",
+        "examples": [
+          {
+            "main": "reveal_type(1)"
+          }
+        ]
+      },
+      "out": {
+        "type": "string",
+        "description": "Verbose output expected from `mypy`.",
+        "examples": [
+          {
+            "out": "main:1: note: Revealed type is \"Literal[1]?\""
+          }
+        ]
+      },
+      "files": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/File"
+        },
+        "description": "List of extra files to simulate imports if needed.",
+        "examples": [
+          [
+            {
+              "path": "myapp/__init__.py"
+            },
+            {
+              "path": "myapp/utils.py",
+              "content": "def help(): pass"
+            }
+          ]
+        ]
+      },
+      "disable_cache": {
+        "type": "boolean",
+        "description": "Set to `true` disables `mypy` caching.",
+        "default": false
+      },
+      "mypy_config": {
+        "type": "string",
+        "description": "Inline `mypy` configuration, passed directly to `mypy`.",
+        "examples": [
+          {
+            "mypy_config": "force_uppercase_builtins = true\nforce_union_syntax = true\n"
+          }
+        ]
+      },
+      "env": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Environmental variables to be provided inside of test run.",
+        "examples": [
+          "MYPYPATH=../extras",
+          "DJANGO_SETTINGS_MODULE=mysettings"
+        ]
+      },
+      "parametrized": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Parameter"
+        },
+        "description": "List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html). Each entry **must** have the **exact** same set of keys.",
+        "examples": [
+          [
+            {
+              "val": 1,
+              "rt": "int"
+            },
+            {
+              "val": "1",
+              "rt": "str"
+            }
+          ]
+        ]
+      },
+      "skip": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "An expression set in `skip` is passed directly into [`eval`](https://docs.python.org/3/library/functions.html#eval). It is advised to take a peek and learn about how `eval` works. Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`.",
+        "examples": [
+          "yes",
+          true,
+          "sys.version_info > (2, 0)"
+        ],
+        "default": false
+      },
+      "expect_fail": {
+        "type": "boolean",
+        "description": "Mark test case as an expected failure.",
+        "default": false
+      },
+      "regex": {
+        "type": "boolean",
+        "description": "Allow regular expressions in comments to be matched against actual output. _See pytest_mypy_plugins/tests/test-regex_assertions.yml for examples_",
+        "default": false
+      }
+    },
+    "required": [
+      "case",
+      "main"
+    ]
+  },
+  "definitions": {
+    "File": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File path.",
+          "examples": [
+            "../extras/extra_module.py",
+            "myapp/__init__.py"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "description": "File content. Can be empty. Must be valid Python code.",
+          "examples": [
+            "def help(): pass",
+            "def help():\n    pass\n"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "Parameter": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "A mapping of keys to values, similar to Python's `Mapping[str, Any]`.",
+      "examples": [
+        {
+          "val": "1",
+          "rt": "str"
+        }
+      ]
+    }
+  }
+}

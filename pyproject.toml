@@ -1,2 +1,17 @@
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+addopts = "-s --mypy-extension-hook pytest_mypy_plugins.tests.reveal_type_hook.hook"
+
 [tool.black]
 line-length = 120
+target-version = ["py39"]
+
+[tool.isort]
+include_trailing_comma = true
+multi_line_output = 3
+profile = "black"

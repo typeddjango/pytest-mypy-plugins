@@ -1,15 +1,29 @@
+import json
 import os
+import pathlib
 import platform
 import sys
 import tempfile
 from collections import ChainMap
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Mapping, Optional
+from dataclasses import dataclass
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+)
 
+import jsonschema
+import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
-from py._path.local import LocalPath
 
 from pytest_mypy_plugins import utils
 
@@ -17,10 +31,27 @@ if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 
+@dataclass
 class File:
-    def __init__(self, path: str, content: str) -> None:
-        self.path = path
-        self.content = content
+    path: str
+    content: str
+
+
+def validate_schema(data: Any, *, is_closed: bool = False) -> None:
+    """Validate the schema of the file-under-test."""
+    # Unfortunately, yaml.safe_load() returns Any,
+    # so we make our intention explicit here.
+    if not isinstance(data, list):
+        raise TypeError(f"Test file has to be YAML list, got {type(data)!r}.")
+
+    schema = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text("utf8"))
+    schema["items"]["properties"]["__line__"] = {
+        "type": "integer",
+        "description": "Line number where the test starts (`pytest-mypy-plugins` internal)",
+    }
+    schema["items"]["additionalProperties"] = not is_closed
+
+    jsonschema.validate(instance=data, schema=schema)
 
 
 def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
@@ -45,7 +76,7 @@ def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any
         return [{}]
 
     parsed_params: List[Mapping[str, Any]] = []
-    known_params = None
+    known_params: Optional[Set[str]] = None
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
         if not known_params:
@@ -62,11 +93,11 @@ def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any
 
 
 class SafeLineLoader(yaml.SafeLoader):
-    def construct_mapping(self, node: yaml.Node, deep: bool = False) -> None:
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> Dict[Hashable, Any]:
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
-        for (title_node, contents_node) in node.value:
+        for title_node, _contents_node in node.value:
             if title_node.value == "main":
                 starting_line = title_node.start_mark.line + 1
         mapping["__line__"] = starting_line
@@ -77,9 +108,11 @@ class YamlTestFile(pytest.File):
     def collect(self) -> Iterator["YamlTestItem"]:
         from pytest_mypy_plugins.item import YamlTestItem
 
-        parsed_file = yaml.load(stream=self.fspath.read_text("utf8"), Loader=SafeLineLoader)
+        parsed_file = yaml.load(stream=self.path.read_text("utf8"), Loader=SafeLineLoader)
         if parsed_file is None:
             return
+
+        validate_schema(parsed_file, is_closed=self.config.option.mypy_closed_schema)
 
         if not isinstance(parsed_file, list):
             raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
@@ -121,7 +154,7 @@ class YamlTestFile(pytest.File):
                 expected_output.extend(
                     utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
                 )
-                additional_mypy_config = raw_test.get("mypy_config", "")
+                additional_mypy_config = utils.render_template(template=raw_test.get("mypy_config", ""), data=params)
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))
                 if not skip:
@@ -139,12 +172,12 @@ class YamlTestFile(pytest.File):
                     )
 
     def _eval_skip(self, skip_if: str) -> bool:
-        return eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform})
+        return bool(eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform}))
 
 
-def pytest_collect_file(path: LocalPath, parent: Node) -> Optional[YamlTestFile]:
-    if path.ext in {".yaml", ".yml"} and path.basename.startswith(("test-", "test_")):
-        return YamlTestFile.from_parent(parent, fspath=path)
+def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:
+    if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
+        return YamlTestFile.from_parent(parent, path=file_path, fspath=None)
     return None
 
 
@@ -153,7 +186,16 @@ def pytest_addoption(parser: Parser) -> None:
     group.addoption(
         "--mypy-testing-base", type=str, default=tempfile.gettempdir(), help="Base directory for tests to use"
     )
-    group.addoption("--mypy-ini-file", type=str, help="Which .ini file to use as a default config for tests")
+    group.addoption(
+        "--mypy-pyproject-toml-file",
+        type=str,
+        help="Which `pyproject.toml` file to use as a default config for tests. Incompatible with `--mypy-ini-file`",
+    )
+    group.addoption(
+        "--mypy-ini-file",
+        type=str,
+        help="Which `.ini` file to use as a default config for tests. Incompatible with `--mypy-pyproject-toml-file`",
+    )
     group.addoption(
         "--mypy-same-process",
         action="store_true",
@@ -169,4 +211,9 @@ def pytest_addoption(parser: Parser) -> None:
         "--mypy-only-local-stub",
         action="store_true",
         help="mypy will ignore errors from site-packages",
+    )
+    group.addoption(
+        "--mypy-closed-schema",
+        action="store_true",
+        help="Use closed schema to validate YAML test cases, which won't allow any extra keys (does not work well with `--mypy-extension-hook`)",
     )

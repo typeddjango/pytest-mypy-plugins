@@ -44,4 +44,26 @@
       ...
   out: |
     main:2: note: Revealed type is "{{ rt }}"
-    main:4: error: Unsupported operand types for / ("str" and "int")
+    main:4: error: Unsupported operand types for / ("str" and "int")  [operator]
+
+- case: parametrized_can_skip_mypy_config_section
+  parametrized:
+    - val: False
+    - val: True
+  mypy_config: |
+    hide_error_codes = True
+  main: |
+    a = {{ val }}
+    a.lower()  # E: "bool" has no attribute "lower"
+
+- case: with_mypy_config
+  parametrized:
+    - allow_any: "true"
+    - allow_any: "false"
+  mypy_config: |
+    disallow_any_explicit = {{ allow_any }}
+  main: |
+    # Anything will work, we just need to be sure that
+    # `disallow_any_generics: Not a boolean: {{ allow_any }}`
+    # is not raised
+    1 + 1

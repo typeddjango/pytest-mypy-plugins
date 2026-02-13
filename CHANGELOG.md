@@ -1,6 +1,145 @@
 # Version history
 
 
+## 3.2.0
+
+### Features
+
+- Drops `python3.8` support
+- Adds official `python3.13` support
+
+### Bugfixes
+
+- Fixes regex for colon output `:`, #155
+- Fixes internal error with `TraceLastReprEntry`, #154
+
+
+## 3.1.2
+
+### Bugfixes
+
+- Fix joining `toml` configs with `[[mypy.overrides]]`
+
+
+## 3.1.1
+
+### Bugfixes
+
+- Make sure that schema is open by default: only check existing fields
+- Add `--mypy-schema-closed` option to check schemas with no extra fields
+
+
+## 3.1.0
+
+### Features
+
+- Add `python3.12` support
+- Add `mypy@1.8.0` support
+- Add schema definition
+
+
+## 3.0.0
+
+### Features
+
+- *Breaking*: Drop python3.7 support
+- Add `pyproject.toml` config file support with `--mypy-pyproject-toml-file` option
+
+### Bugfixes
+
+- Add `tox.ini` file to `sdist` package
+- Add `requirements.txt` file to `sdist` package
+- Add `pyproject.toml` file to `sdist` package
+
+
+## 2.0.0
+
+### Features
+
+- Use `jinja2` instead of `chevron` for templating
+- Allow parametrizing `mypy_config` field in tests
+- Bump minimal `mypy` and `pytest` versions
+
+### Bugfixes
+
+- Also include `mypy.ini` and `pytest.ini` to `sdist` package
+
+
+## Version 1.11.1
+
+### Bugfixes
+
+- Adds `tests/` subfolder to `sdist` package
+
+
+## Version 1.11.0
+
+### Features
+
+- Adds `python3.11` support and promise about `python3.12` support
+- Removes `pkg_resources` to use `packaging` instead
+
+
+## Version 1.10.1
+
+### Bugfixes
+
+- Removes unused depenencies for `python < 3.7`
+- Fixes compatibility with pytest 7.2, broken due to a private import from
+  `py._path`.
+
+
+## Version 1.10.0
+
+### Features
+
+- Changes how `mypy>=0.970` handles `MYPYPATH`
+- Bumps minimal `mypy` version to `mypy>=0.970`
+- Drops `python3.6` support
+
+
+## Version 1.9.3
+
+### Bugfixes
+
+- Fixes `DeprecationWarning` for using `py.LocalPath` for `pytest>=7.0` #89
+
+
+## Version 1.9.2
+
+### Bugfixes
+
+- Removes usages of `distutils` #71
+- Fixes multiline messages #66
+- Fixes that empty output test cases was almost ignored #63
+- Fixes output formatting for expected messages #66
+
+
+## Version 1.9.1
+
+## Bugfixes
+
+- Fixes that `regex` and `dataclasses` dependencies were not listed in `setup.py`
+
+
+## Version 1.9.0
+
+## Features
+
+- Adds `regex` support in matching test output
+- Adds a flag for expected failures
+- Replaces deprecated `pystache` with `chevron`
+
+## Misc
+
+- Updates `mypy`
+
+
+## Version 1.8.0
+
+We missed this released by mistake.
+
+
 ## Version 1.7.0
 
 ### Features

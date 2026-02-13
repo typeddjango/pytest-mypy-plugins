@@ -2,14 +2,24 @@
 
 # pytest plugin for testing mypy types, stubs, and plugins
 
-[![Build Status](https://travis-ci.org/typeddjango/pytest-mypy-plugins.svg?branch=master)](https://travis-ci.org/typeddjango/pytest-mypy-plugins)
+[![Tests Status](https://github.com/typeddjango/pytest-mypy-plugins/actions/workflows/test.yml/badge.svg)](https://github.com/typeddjango/pytest-mypy-plugins/actions/workflows/test.yml)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 [![Gitter](https://badges.gitter.im/mypy-django/Lobby.svg)](https://gitter.im/mypy-django/Lobby)
+[![PyPI](https://img.shields.io/pypi/v/pytest-mypy-plugins?color=blue)](https://pypi.org/project/pytest-mypy-plugins/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/pytest-mypy-plugins.svg?color=blue)](https://anaconda.org/conda-forge/pytest-mypy-plugins)
 
 ## Installation
 
+This package is available on [PyPI](https://pypi.org/project/pytest-mypy-plugins/)
+
 ```bash
 pip install pytest-mypy-plugins
+```
+
+and [conda-forge](https://anaconda.org/conda-forge/pytest-mypy-plugins)
+
+```bash
+conda install -c conda-forge pytest-mypy-plugins
 ```
 
 ## Usage
@@ -22,6 +32,24 @@ just execute:
 ```bash
 pytest
 ```
+
+### Asserting types
+
+There are two ways to assert types.
+The custom one and regular [`typing.assert_type`](https://docs.python.org/3/library/typing.html#typing.assert_type).
+
+Our custom type assertion uses `reveal_type` helper and custom output matchers:
+
+```yml
+- case: using_reveal_type
+  main: |
+    instance = 1
+    reveal_type(instance)  # N: Revealed type is 'builtins.int'
+```
+
+This method also allows to use `# E:` for matching exact error messages and codes.
+
+But, you can also use regular `assert_type`, examples can be [found here](https://github.com/typeddjango/pytest-mypy-plugins/blob/master/pytest_mypy_plugins/tests/test-assert-type.yml).
 
 ### Paths
 
@@ -43,7 +71,7 @@ You can also specify `PYTHONPATH`, `MYPYPATH`, or any other environment variable
     instance: Pair
     reveal_type(instance)  # N: Revealed type is 'pair.Pair'
   env:
-    - MYPYPATH=./pytest_mypy_plugins/tests/fixtures
+    - MYPYPATH=../fixtures
 ```
 
 
@@ -58,10 +86,11 @@ On top of that, each case must comply to following types:
 | `main`          | `str`                                                  | Portion of the code as if written in `.py` file                                                                     |
 | `files`         | `Optional[List[File]]=[]`\*                            | List of extra files to simulate imports if needed                                                                   |
 | `disable_cache` | `Optional[bool]=False`                                 | Set to `true` disables `mypy` caching                                                                               |
-| `mypy_config`   | `Optional[Dict[str, Union[str, int, bool, float]]]={}` | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option                                    |
+| `mypy_config`   | `Optional[str]`                                        | Inline `mypy` configuration, passed directly to `mypy` as `--config-file` option, possibly joined with `--mypy-pyproject-toml-file` or `--mypy-ini-file` contents if they are passed. By default is treated as `ini`, treated as `toml` only if `--mypy-pyproject-toml-file` is passed |
 | `env`           | `Optional[Dict[str, str]]={}`                          | Environmental variables to be provided inside of test run                                                           |
 | `parametrized`  | `Optional[List[Parameter]]=[]`\*                       | List of parameters, similar to [`@pytest.mark.parametrize`](https://docs.pytest.org/en/stable/parametrize.html)     |
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
+| `expect_fail`   | `bool`                                                 | Mark test case as an expected failure, like [`@pytest.mark.xfail`](https://docs.pytest.org/en/stable/skipping.html) |
 | `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output. Defaults to "no", i.e. matches full text.|
 
 (*) Appendix to **pseudo** types used above:
@@ -89,6 +118,15 @@ In addition to test cases, re-usable placeholders can be defined in a top level 
 text which can be reused in any test cases within the YAML test file - see example below.
 
 ### Examples
+Repository also offers a [JSONSchema](pytest_mypy_plugins/schema.json), with which
+it validates the input. It can also offer your editor auto-completions, descriptions, and validation.
+
+All you have to do, add the following line at the top of your YAML file:
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/typeddjango/pytest-mypy-plugins/master/pytest_mypy_plugins/schema.json
+```
+
+### Example
 
 #### 1. Inline type expectations
 
@@ -119,8 +157,13 @@ text which can be reused in any test cases within the YAML test file - see examp
     - val: 1.0
       rt: builtins.float
   main: |
-    reveal_type({[ val }})  # N: Revealed type is '{{ rt }}'
+    reveal_type({{ val }})  # N: Revealed type is '{{ rt }}'
 ```
+
+Properties that you can parametrize:
+- `main`
+- `mypy_config`
+- `out`
 
 #### 3. Longer type expectations
 
@@ -175,12 +218,26 @@ text which can be reused in any test cases within the YAML test file - see examp
 mypy-tests:
   --mypy-testing-base=MYPY_TESTING_BASE
                         Base directory for tests to use
+  --mypy-pyproject-toml-file=MYPY_PYPROJECT_TOML_FILE
+                        Which `pyproject.toml` file to use
+                        as a default config for tests.
+                        Incompatible with `--mypy-ini-file`
   --mypy-ini-file=MYPY_INI_FILE
-                        Which .ini file to use as a default config for tests
+                        Which `.ini` file to use as a default config for tests.
+                        Incompatible with `--mypy-pyproject-toml-file`
   --mypy-same-process
-                        Now, to help with various issues in django-stubs, it runs every single test in the subprocess mypy call.
-                        Some debuggers cannot attach to subprocess, so enable this flag to make mypy check happen in the same process.
-                        (Could cause cache issues)
+                        Run in the same process. Useful for debugging,
+                        will create problems with import cache
+  --mypy-extension-hook=MYPY_EXTENSION_HOOK
+                        Fully qualified path to the extension hook function,
+                        in case you need custom yaml keys. Has to be top-level
+  --mypy-only-local-stub
+                        mypy will ignore errors from site-packages
+  --mypy-closed-schema
+                        Use closed schema to validate YAML test cases,
+                        which won't allow any extra keys
+                        (does not work well with `--mypy-extension-hook`)
+
 ```
 
 ## Further reading
