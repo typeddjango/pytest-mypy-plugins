@@ -1,6 +1,21 @@
 # Version history
 
 
+## 3.3.0
+
+### Features
+
+- Drops `python3.9` supports
+- Adds official `python3.14` support
+- Allow `--mypy-testing-base` to be relative
+  by resolving `execution_path` before `cd`, #168
+
+### Bugfixes
+
+- Fixes how `__line__` attribute is set, #181
+- Remove cache files created for namespace packages, #180
+
+
 ## 3.2.0
 
 ### Features

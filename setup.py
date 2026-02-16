@@ -17,7 +17,7 @@ dependencies = [
 
 setup(
     name="pytest-mypy-plugins",
-    version="3.2.0",
+    version="3.3.0",
     description="pytest plugin for writing tests for mypy plugins",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -31,19 +31,19 @@ setup(
     # the following makes a plugin available to pytest
     entry_points={"pytest11": ["pytest-mypy-plugins = pytest_mypy_plugins.collect"]},
     install_requires=dependencies,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     package_data={
         "pytest_mypy_plugins": ["py.typed", "schema.json"],
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Typing :: Typed",
     ],
 )
