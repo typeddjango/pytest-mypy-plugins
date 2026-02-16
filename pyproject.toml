@@ -9,7 +9,7 @@ addopts = "-s --mypy-extension-hook pytest_mypy_plugins.tests.reveal_type_hook.h
 
 [tool.black]
 line-length = 120
-target-version = ["py39"]
+target-version = ["py310"]
 
 [tool.isort]
 include_trailing_comma = true
