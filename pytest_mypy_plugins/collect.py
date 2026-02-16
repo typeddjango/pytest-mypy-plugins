@@ -99,7 +99,8 @@ class SafeLineLoader(yaml.SafeLoader):
         for title_node, _contents_node in node.value:
             if title_node.value == "main":
                 starting_line = title_node.start_mark.line + 1
-        mapping["__line__"] = starting_line
+        if "case" in mapping:
+            mapping["__line__"] = starting_line
         return mapping
 
 
