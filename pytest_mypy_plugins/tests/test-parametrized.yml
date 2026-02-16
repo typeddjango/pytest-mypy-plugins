@@ -4,6 +4,8 @@
       revealed_type: builtins.int
     - a: 1.0
       revealed_type: builtins.float
+    - a: {a: "test"}
+      revealed_type: builtins.dict[builtins.str, builtins.str]
   main: |
     a = {{ a }}
     reveal_type(a)  # N: Revealed type is "{{ revealed_type }}"
