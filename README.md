@@ -209,8 +209,12 @@ mypy-tests:
   --mypy-extension-hook=MYPY_EXTENSION_HOOK
                         Fully qualified path to the extension hook function,
                         in case you need custom yaml keys. Has to be top-level
-  --mypy-only-local-stub
-                        mypy will ignore errors from site-packages
+  --mypy-no-silence-site-packages
+                        mypy will not silence errors from site-packages
+  --mypy-modify-pythonpath
+                        When running mypy in a subprocess, modify `PYTHONPATH`
+                        to force packages to be treated as site-packages.
+                        Incompatible with `--mypy-same-process`
   --mypy-closed-schema
                         Use closed schema to validate YAML test cases,
                         which won't allow any extra keys

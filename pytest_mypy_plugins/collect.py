@@ -205,9 +205,14 @@ def pytest_addoption(parser: Parser) -> None:
         "Has to be top-level.",
     )
     group.addoption(
-        "--mypy-only-local-stub",
+        "--mypy-no-silence-site-packages",
         action="store_true",
-        help="mypy will ignore errors from site-packages",
+        help="mypy will not silence errors from site-packages",
+    )
+    group.addoption(
+        "--mypy-modify-pythonpath",
+        action="store_true",
+        help="When running mypy in a subprocess, modify `PYTHONPATH` to force packages to be treated as site-packages. Incompatible with `--mypy-same-process`",
     )
     group.addoption(
         "--mypy-closed-schema",
