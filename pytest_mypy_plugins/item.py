@@ -137,17 +137,20 @@ def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO
 class MypyExecutor:
     def __init__(
         self,
+        *,
         same_process: bool,
         rootdir: Union[Path, None],
         execution_path: Path,
         environment_variables: Dict[str, Any],
         mypy_executable: str,
+        modify_pythonpath: bool,
     ) -> None:
         self.rootdir = rootdir
         self.same_process = same_process
         self.execution_path = execution_path
         self.mypy_executable = mypy_executable
         self.environment_variables = environment_variables
+        self.modify_pythonpath = modify_pythonpath
 
     def execute(self, mypy_cmd_options: List[str]) -> Tuple[int, Tuple[str, str]]:
         # Returns (returncode, (stdout, stderr))
@@ -157,8 +160,10 @@ class MypyExecutor:
             return self._typecheck_in_new_subprocess(mypy_cmd_options)
 
     def _typecheck_in_new_subprocess(self, mypy_cmd_options: List[Any]) -> Tuple[int, Tuple[str, str]]:
-        # add current directory to path
-        self._collect_python_path(self.rootdir)
+        if self.modify_pythonpath:
+            # add current directory to path
+            self._collect_python_path(self.rootdir)
+
         # adding proper MYPYPATH variable
         self._collect_mypy_path(self.rootdir)
 
@@ -263,7 +268,7 @@ class Runner:
         disable_cache: bool,
         mypy_executor: MypyExecutor,
         output_checker: OutputChecker,
-        test_only_local_stub: bool,
+        no_silence_site_packages: bool,
         incremental_cache_dir: str,
     ) -> None:
         self.files = files
@@ -273,7 +278,7 @@ class Runner:
         self.mypy_executor = mypy_executor
         self.disable_cache = disable_cache
         self.output_checker = output_checker
-        self.test_only_local_stub = test_only_local_stub
+        self.no_silence_site_packages = no_silence_site_packages
         self.incremental_cache_dir = incremental_cache_dir
 
     def run(self) -> None:
@@ -301,7 +306,7 @@ class Runner:
             "--no-pretty",
             "--hide-error-context",
         ]
-        if not self.test_only_local_stub:
+        if self.no_silence_site_packages:
             mypy_cmd_options.append("--no-silence-site-packages")
         if not self.disable_cache:
             mypy_cmd_options.extend(["--cache-dir", self.incremental_cache_dir])
@@ -338,7 +343,8 @@ class YamlTestItem(pytest.Item):
         self.additional_mypy_config = mypy_config
         self.parsed_test_data = parsed_test_data
         self.same_process = self.config.option.mypy_same_process
-        self.test_only_local_stub = self.config.option.mypy_only_local_stub
+        self.modify_pythonpath = self.config.option.mypy_modify_pythonpath
+        self.no_silence_site_packages = self.config.option.mypy_no_silence_site_packages
 
         # config parameters
         self.root_directory = self.config.option.mypy_testing_base
@@ -415,6 +421,7 @@ class YamlTestItem(pytest.Item):
                     rootdir=rootdir,
                     environment_variables=self.environment_variables,
                     mypy_executable=mypy_executable,
+                    modify_pythonpath=self.modify_pythonpath,
                 )
 
                 output_checker = OutputChecker(
@@ -429,7 +436,7 @@ class YamlTestItem(pytest.Item):
                     disable_cache=self.disable_cache,
                     mypy_executor=mypy_executor,
                     output_checker=output_checker,
-                    test_only_local_stub=self.test_only_local_stub,
+                    no_silence_site_packages=self.no_silence_site_packages,
                     incremental_cache_dir=self.incremental_cache_dir,
                 ).run()
         finally:

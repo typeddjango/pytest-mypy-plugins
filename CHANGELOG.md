@@ -1,5 +1,23 @@
 # Version history
 
+## 4.0.0
+
+### Bugfixes
+
+- *Breaking*: Errors are now ignored in site-packages by default. The `--mypy-only-local-stub` flag
+  has been removed and replaced with `--mypy-no-silence-site-packages` which can be used to restore
+  the previous behavior if needed. This change was made to avoid errors being raised when enabling
+  certain mypy options, e.g. the `explicit-override` error code or the `--disallow-subclassing-any`
+  flag, which resulted in violations due to these not being supported with the stubs provided by
+  typeshed for the standard library. In addition, this affected other error codes or flags for some
+  third-party libraries in django-stubs.
+- *Breaking*: When running in a subprocess (the default), `PYTHONPATH` is no longer set. With the
+  above change, violations would still be raised in the main module for a test case, but those that
+  were flagged in imported modules would no longer be raised. This was because these modules were
+  being added to `PYTHONPATH` which caused mypy to treat them as belonging in site-packages and not
+  as part of the first-party package. The new `--mypy-modify-pythonpath` flag can be used to revert
+  to the previous behavior if needed.
+
 
 ## 3.3.0
 
