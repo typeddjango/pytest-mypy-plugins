@@ -92,7 +92,7 @@ def test_no_silence_site_packages_only(tmp_path: Path) -> None:
         a: str
         a / 2
   out: |
-    {site_packages_path}/mypy/typeshed/stdlib/types.pyi:721: error: Class cannot subclass "Any" (has type "Any")  [misc]
+    {site_packages_path}/mypy/typeshed/stdlib/types.pyi:716: error: Class cannot subclass "Any" (has type "Any")  [misc]
     main:4: error: Unsupported operand types for / ("str" and "int")  [operator]
     subpkg:2: error: Unsupported operand types for / ("str" and "int")  [operator]
         """,
@@ -128,7 +128,7 @@ def test_no_silence_site_packages_and_modify_pythonpath(tmp_path: Path) -> None:
         a: str
         a / 2
   out: |
-    {site_packages_path}/mypy/typeshed/stdlib/types.pyi:721: error: Class cannot subclass "Any" (has type "Any")  [misc]
+    {site_packages_path}/mypy/typeshed/stdlib/types.pyi:716: error: Class cannot subclass "Any" (has type "Any")  [misc]
     main:4: error: Unsupported operand types for / ("str" and "int")  [operator]
     subpkg:2: error: Unsupported operand types for / ("str" and "int")  [operator]
         """,

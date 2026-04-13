@@ -366,7 +366,7 @@ class YamlTestItem(pytest.Item):
     # Suffixes used by mypy's incremental cache across versions:
     # - .data.json / .meta.json: legacy format
     # - .data.ff / .meta.ff / .err.ff: modern flat-file format (mypy >= 1.18.1 -> https://mypy.readthedocs.io/en/stable/changelog.html#fixedformat-cache-experimental)
-    _CACHE_FILE_SUFFIXES = (".data.json", ".meta.json", ".data.ff", ".meta.ff", ".err.ff")
+    _CACHE_FILE_SUFFIXES = (".data.json", ".meta.json", ".err.json", ".data.ff", ".meta.ff", ".err.ff")
 
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_file = Path(self.incremental_cache_dir)
@@ -400,18 +400,26 @@ class YamlTestItem(pytest.Item):
         """
         Remove matching entries from the SQLite-based cache database.
 
+        Removes entries for each intermediate path component so that namespace
+        package cache entries are also cleaned up (e.g. for ``my_nspkg/sub/mod``,
+        removes ``my_nspkg.*``, ``my_nspkg/sub.*``, and ``my_nspkg/sub/mod.*``).
+
         See https://github.com/python/mypy/blob/master/mypy/metastore.py
         """
         import sqlite3
 
-        prefix = str(fpath_no_suffix)
         con = sqlite3.connect(str(cache_db))
         try:
-            for table in ("files", "files2"):
-                try:
-                    con.execute(f"DELETE FROM {table} WHERE path LIKE ?", (f"{prefix}.%",))
-                except sqlite3.OperationalError:
-                    pass  # table doesn't exist in this version
+            accumulated = ""
+            for i, part in enumerate(fpath_no_suffix.parts):
+                if i == 0 and part.endswith("-stubs"):
+                    part = part.removesuffix("-stubs")
+                accumulated = f"{accumulated}/{part}" if accumulated else part
+                for table in ("files", "files2"):
+                    try:
+                        con.execute(f"DELETE FROM {table} WHERE path LIKE ?", (f"{accumulated}.%",))
+                    except sqlite3.OperationalError:
+                        pass  # table doesn't exist in this version
             con.commit()
         finally:
             con.close()

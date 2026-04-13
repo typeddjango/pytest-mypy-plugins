@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
+from pytest_mypy_plugins.item import YamlTestItem
+
 
 def test_non_test_case_files_remain(temp_dir: Path) -> None:
     """
@@ -144,16 +146,32 @@ CACHE_FILES_REMOVED_TEST_DATA = {
 
 
 @pytest.mark.parametrize(
+    "mypy_cache_config",
+    [
+        pytest.param("", id="default"),
+        pytest.param("sqlite_cache = False\n", id="no-sqlite"),
+        pytest.param("fixed_format_cache = False\n", id="no-fixed-format"),
+        pytest.param("sqlite_cache = False\nfixed_format_cache = False\n", id="legacy"),
+    ],
+)
+@pytest.mark.parametrize(
     ("contents", "module_fpaths_no_suffix"),
     CACHE_FILES_REMOVED_TEST_DATA.values(),
     ids=CACHE_FILES_REMOVED_TEST_DATA.keys(),
 )
-def test_cache_files_removed(temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...]) -> None:
+def test_cache_files_removed(
+    temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...], mypy_cache_config: str
+) -> None:
     """Tests that cache files associated with ``files`` in a test case get removed"""
 
     cache_dir = temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
     # pytest and mypy hasn't been run yet, so no cache should exist
     assert not cache_dir.is_dir()
+
+    if mypy_cache_config:
+        config_lines = mypy_cache_config.strip().splitlines()
+        indented = "\n".join(f"    {line}" for line in config_lines)
+        contents = contents.replace("  main: |", f"  mypy_config: |\n{indented}\n  main: |")
 
     make_yaml_test_file(temp_dir, contents)
     res = subprocess.run(
@@ -196,10 +214,25 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
     created = []
     for rel_path in module_rel_paths_no_suffix:
         prefix = cache_dir / rel_path
-        data_file = prefix.with_suffix(".data.json")
-        if data_file.exists():
-            created.append(str(data_file.relative_to(cache_dir)))
-        meta_file = prefix.with_suffix(".meta.json")
-        if meta_file.exists():
-            created.append(str(meta_file.relative_to(cache_dir)))
+        for suffix in YamlTestItem._CACHE_FILE_SUFFIXES:
+            f = prefix.with_suffix(suffix)
+            if f.exists():
+                created.append(str(f.relative_to(cache_dir)))
+
+    cache_db = cache_dir / "cache.db"
+    if cache_db.exists() and cache_db.stat().st_size > 0:
+        import sqlite3
+
+        con = sqlite3.connect(str(cache_db))
+        try:
+            for table in ("files", "files2"):
+                try:
+                    for rel_path in module_rel_paths_no_suffix:
+                        rows = con.execute(f"SELECT path FROM {table} WHERE path LIKE ?", (f"{rel_path}.%",)).fetchall()
+                        created.extend(row[0] for row in rows)
+                except sqlite3.OperationalError:
+                    pass  # table doesn't exist in this version
+        finally:
+            con.close()
+
     return created
