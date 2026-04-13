@@ -394,7 +394,7 @@ class YamlTestItem(pytest.Item):
 
     def runtest(self) -> None:
         try:
-            temp_dir = tempfile.TemporaryDirectory(prefix="pytest-mypy-", dir=self.root_directory)
+            temp_dir = tempfile.TemporaryDirectory(prefix=f"pytest-mypy-{self.name}-", dir=self.root_directory)
 
         except (FileNotFoundError, PermissionError, NotADirectoryError) as e:
             raise TypecheckAssertionError(
