@@ -365,12 +365,19 @@ class YamlTestItem(pytest.Item):
 
     # Suffixes used by mypy's incremental cache across versions:
     # - .data.json / .meta.json: legacy format
-    # - .data.ff / .meta.ff / .err.ff: modern flat-file format (mypy >= 1.14)
+    # - .data.ff / .meta.ff / .err.ff: modern flat-file format (mypy >= 1.18.1 -> https://mypy.readthedocs.io/en/stable/changelog.html#fixedformat-cache-experimental)
     _CACHE_FILE_SUFFIXES = (".data.json", ".meta.json", ".data.ff", ".meta.ff", ".err.ff")
 
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_file = Path(self.incremental_cache_dir)
         cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
+
+        # SQLite-based cache
+        cache_db = cache_file / "cache.db"
+        if cache_db.exists() and cache_db.stat().st_size > 0:
+            self._remove_cache_entry_from_db(cache_db, fpath_no_suffix)
+
+        # Flat-file cache
         for i, part in enumerate(fpath_no_suffix.parts):
             if (i == 0) and part.endswith("-stubs") and ((cache_file / part.removesuffix("-stubs")).is_dir()):
                 part = part.removesuffix("-stubs")
@@ -387,6 +394,27 @@ class YamlTestItem(pytest.Item):
                 and str(self.incremental_cache_dir) in str(parent_dir)
             ):
                 parent_dir.rmdir()
+
+    @staticmethod
+    def _remove_cache_entry_from_db(cache_db: Path, fpath_no_suffix: Path) -> None:
+        """
+        Remove matching entries from the SQLite-based cache database.
+
+        See https://github.com/python/mypy/blob/master/mypy/metastore.py
+        """
+        import sqlite3
+
+        prefix = str(fpath_no_suffix)
+        con = sqlite3.connect(str(cache_db))
+        try:
+            for table in ("files", "files2"):
+                try:
+                    con.execute(f"DELETE FROM {table} WHERE path LIKE ?", (f"{prefix}.%",))
+                except sqlite3.OperationalError:
+                    pass  # table doesn't exist in this version
+            con.commit()
+        finally:
+            con.close()
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
