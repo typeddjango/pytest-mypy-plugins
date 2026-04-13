@@ -363,6 +363,11 @@ class YamlTestItem(pytest.Item):
             self.base_pyproject_toml_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
 
+    # Suffixes used by mypy's incremental cache across versions:
+    # - .data.json / .meta.json: legacy format
+    # - .data.ff / .meta.ff / .err.ff: modern flat-file format (mypy >= 1.14)
+    _CACHE_FILE_SUFFIXES = (".data.json", ".meta.json", ".data.ff", ".meta.ff", ".err.ff")
+
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_file = Path(self.incremental_cache_dir)
         cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
@@ -370,12 +375,10 @@ class YamlTestItem(pytest.Item):
             if (i == 0) and part.endswith("-stubs") and ((cache_file / part.removesuffix("-stubs")).is_dir()):
                 part = part.removesuffix("-stubs")
             cache_file /= part
-            data_json_file = cache_file.with_suffix(".data.json")
-            if data_json_file.exists():
-                data_json_file.unlink()
-            meta_json_file = cache_file.with_suffix(".meta.json")
-            if meta_json_file.exists():
-                meta_json_file.unlink()
+            for suffix in self._CACHE_FILE_SUFFIXES:
+                f = cache_file.with_suffix(suffix)
+                if f.exists():
+                    f.unlink()
 
         for parent_dir in cache_file.parents:
             if (
@@ -441,7 +444,7 @@ class YamlTestItem(pytest.Item):
                 ).run()
         finally:
             temp_dir.cleanup()
-            # remove created modules
+            # remove created modules from the shared cache
             if not self.disable_cache:
                 for file in self.files:
                     path = Path(file.path)
