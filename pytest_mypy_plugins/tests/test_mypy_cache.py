@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from pytest_mypy_plugins.item import YamlTestItem
+from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
 
 
 def test_non_test_case_files_remain(temp_dir: Path) -> None:
@@ -211,28 +211,20 @@ def make_yaml_test_file(
 
 
 def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
+    stores: list[MetadataStore] = []
+    cache_dir_str = str(cache_dir)
+    if (cache_dir / "cache.db").is_file():
+        stores.append(SqliteMetadataStore(cache_dir_str))
+    if cache_dir.is_dir():
+        stores.append(FilesystemMetadataStore(cache_dir_str))
+
     created = []
-    for rel_path in module_rel_paths_no_suffix:
-        prefix = cache_dir / rel_path
-        for suffix in YamlTestItem._CACHE_FILE_SUFFIXES:
-            f = prefix.with_suffix(suffix)
-            if f.exists():
-                created.append(str(f.relative_to(cache_dir)))
-
-    cache_db = cache_dir / "cache.db"
-    if cache_db.exists() and cache_db.stat().st_size > 0:
-        import sqlite3
-
-        con = sqlite3.connect(str(cache_db))
+    for store in stores:
         try:
-            for table in ("files", "files2"):
-                try:
-                    for rel_path in module_rel_paths_no_suffix:
-                        rows = con.execute(f"SELECT path FROM {table} WHERE path LIKE ?", (f"{rel_path}.%",)).fetchall()
-                        created.extend(row[0] for row in rows)
-                except sqlite3.OperationalError:
-                    pass  # table doesn't exist in this version
+            for entry in store.list_all():
+                if any(entry.startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
+                    created.append(entry)
         finally:
-            con.close()
+            store.close()
 
     return created

@@ -27,6 +27,7 @@ from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
+from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
 
 from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
@@ -363,66 +364,40 @@ class YamlTestItem(pytest.Item):
             self.base_pyproject_toml_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
 
-    # Suffixes used by mypy's incremental cache across versions:
-    # - .data.json / .meta.json: legacy format
-    # - .data.ff / .meta.ff / .err.ff: modern flat-file format (mypy >= 1.18.1 -> https://mypy.readthedocs.io/en/stable/changelog.html#fixedformat-cache-experimental)
-    _CACHE_FILE_SUFFIXES = (".data.json", ".meta.json", ".err.json", ".data.ff", ".meta.ff", ".err.ff")
-
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
-        cache_file = Path(self.incremental_cache_dir)
-        cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
+        cache_dir = os.path.join(
+            self.incremental_cache_dir,
+            ".".join([str(part) for part in sys.version_info[:2]]),
+        )
+        if not os.path.isdir(cache_dir):
+            return
 
-        # SQLite-based cache
-        cache_db = cache_file / "cache.db"
-        if cache_db.exists() and cache_db.stat().st_size > 0:
-            self._remove_cache_entry_from_db(cache_db, fpath_no_suffix)
-
-        # Flat-file cache
+        # Build entry names to remove for each path component so namespace-package
+        # cache entries are also cleaned (e.g. "pkg.*", "pkg/sub.*", "pkg/sub/mod.*").
+        suffixes = (".meta.json", ".data.json", ".err.json", ".meta.ff", ".data.ff", ".err.ff")
+        entries: list[str] = []
+        accumulated = ""
         for i, part in enumerate(fpath_no_suffix.parts):
-            if (i == 0) and part.endswith("-stubs") and ((cache_file / part.removesuffix("-stubs")).is_dir()):
+            if i == 0 and part.endswith("-stubs") and os.path.isdir(os.path.join(cache_dir, part.removesuffix("-stubs"))):
                 part = part.removesuffix("-stubs")
-            cache_file /= part
-            for suffix in self._CACHE_FILE_SUFFIXES:
-                f = cache_file.with_suffix(suffix)
-                if f.exists():
-                    f.unlink()
+            accumulated = f"{accumulated}/{part}" if accumulated else part
+            entries.extend(accumulated + s for s in suffixes)
 
-        for parent_dir in cache_file.parents:
-            if (
-                parent_dir.exists()
-                and len(list(parent_dir.iterdir())) == 0
-                and str(self.incremental_cache_dir) in str(parent_dir)
-            ):
-                parent_dir.rmdir()
+        stores: list[MetadataStore] = []
+        if os.path.isfile(os.path.join(cache_dir, "cache.db")):
+            stores.append(SqliteMetadataStore(cache_dir))
+        stores.append(FilesystemMetadataStore(cache_dir))
 
-    @staticmethod
-    def _remove_cache_entry_from_db(cache_db: Path, fpath_no_suffix: Path) -> None:
-        """
-        Remove matching entries from the SQLite-based cache database.
-
-        Removes entries for each intermediate path component so that namespace
-        package cache entries are also cleaned up (e.g. for ``my_nspkg/sub/mod``,
-        removes ``my_nspkg.*``, ``my_nspkg/sub.*``, and ``my_nspkg/sub/mod.*``).
-
-        See https://github.com/python/mypy/blob/master/mypy/metastore.py
-        """
-        import sqlite3
-
-        con = sqlite3.connect(str(cache_db))
-        try:
-            accumulated = ""
-            for i, part in enumerate(fpath_no_suffix.parts):
-                if i == 0 and part.endswith("-stubs"):
-                    part = part.removesuffix("-stubs")
-                accumulated = f"{accumulated}/{part}" if accumulated else part
-                for table in ("files", "files2"):
+        for store in stores:
+            try:
+                for entry in entries:
                     try:
-                        con.execute(f"DELETE FROM {table} WHERE path LIKE ?", (f"{accumulated}.%",))
-                    except sqlite3.OperationalError:
-                        pass  # table doesn't exist in this version
-            con.commit()
-        finally:
-            con.close()
+                        store.remove(entry)
+                    except FileNotFoundError:
+                        pass
+                store.commit()
+            finally:
+                store.close()
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
