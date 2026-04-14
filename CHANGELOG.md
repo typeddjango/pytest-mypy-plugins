@@ -1,5 +1,12 @@
 # Version history
 
+## 4.0.1
+
+### Bugfixes
+
+- Fixed `sqlite3` mypy's cache contamination, #186
+
+
 ## 4.0.0
 
 ### Bugfixes
