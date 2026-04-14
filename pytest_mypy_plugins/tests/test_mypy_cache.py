@@ -5,7 +5,6 @@ from sys import version_info
 from tempfile import TemporaryDirectory
 
 import pytest
-
 from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
 
 

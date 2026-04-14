@@ -378,7 +378,11 @@ class YamlTestItem(pytest.Item):
         entries: list[str] = []
         accumulated = ""
         for i, part in enumerate(fpath_no_suffix.parts):
-            if i == 0 and part.endswith("-stubs") and os.path.isdir(os.path.join(cache_dir, part.removesuffix("-stubs"))):
+            if (
+                i == 0
+                and part.endswith("-stubs")
+                and os.path.isdir(os.path.join(cache_dir, part.removesuffix("-stubs")))
+            ):
                 part = part.removesuffix("-stubs")
             accumulated = f"{accumulated}/{part}" if accumulated else part
             entries.extend(accumulated + s for s in suffixes)
