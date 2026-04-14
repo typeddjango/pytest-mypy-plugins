@@ -4,7 +4,7 @@
     a = 1
     b = 'hello'
 
-    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(a)  # N: Revealed type is "int"
     reveal_type(b)  # N: .*str.*
 
 - case: expected_message_regex_with_out
@@ -61,7 +61,7 @@
 
     def foo(bar: str, ham: int = 42) -> Set[Union[str, int]]:
       return {bar, ham}
-    reveal_type(foo)  # NR: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+    reveal_type(foo)  # NR: Revealed type is "def \(bar: str, ham: int =\) -> .*"
 
 - case: regex_against_callable_out
   regex: yes
@@ -72,4 +72,4 @@
       return {bar, ham}
     reveal_type(foo)
   out: |
-    main:5: note: Revealed type is "def \(bar: builtins\.str, ham: builtins\.int =\) -> .*"
+    main:5: note: Revealed type is "def \(bar: str, ham: int =\) -> .*"

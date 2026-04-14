@@ -27,6 +27,7 @@ from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
+from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
 
 from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
@@ -364,26 +365,43 @@ class YamlTestItem(pytest.Item):
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
 
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
-        cache_file = Path(self.incremental_cache_dir)
-        cache_file /= ".".join([str(part) for part in sys.version_info[:2]])
-        for i, part in enumerate(fpath_no_suffix.parts):
-            if (i == 0) and part.endswith("-stubs") and ((cache_file / part.removesuffix("-stubs")).is_dir()):
-                part = part.removesuffix("-stubs")
-            cache_file /= part
-            data_json_file = cache_file.with_suffix(".data.json")
-            if data_json_file.exists():
-                data_json_file.unlink()
-            meta_json_file = cache_file.with_suffix(".meta.json")
-            if meta_json_file.exists():
-                meta_json_file.unlink()
+        cache_dir = os.path.join(
+            self.incremental_cache_dir,
+            ".".join([str(part) for part in sys.version_info[:2]]),
+        )
+        if not os.path.isdir(cache_dir):
+            return
 
-        for parent_dir in cache_file.parents:
+        # Build entry names to remove for each path component so namespace-package
+        # cache entries are also cleaned (e.g. "pkg.*", "pkg/sub.*", "pkg/sub/mod.*").
+        suffixes = (".meta.json", ".data.json", ".err.json", ".meta.ff", ".data.ff", ".err.ff")
+        entries: list[str] = []
+        accumulated = ""
+        for i, part in enumerate(fpath_no_suffix.parts):
             if (
-                parent_dir.exists()
-                and len(list(parent_dir.iterdir())) == 0
-                and str(self.incremental_cache_dir) in str(parent_dir)
+                i == 0
+                and part.endswith("-stubs")
+                and os.path.isdir(os.path.join(cache_dir, part.removesuffix("-stubs")))
             ):
-                parent_dir.rmdir()
+                part = part.removesuffix("-stubs")
+            accumulated = f"{accumulated}/{part}" if accumulated else part
+            entries.extend(accumulated + s for s in suffixes)
+
+        stores: list[MetadataStore] = []
+        if os.path.isfile(os.path.join(cache_dir, "cache.db")):
+            stores.append(SqliteMetadataStore(cache_dir))
+        stores.append(FilesystemMetadataStore(cache_dir))
+
+        for store in stores:
+            try:
+                for entry in entries:
+                    try:
+                        store.remove(entry)
+                    except FileNotFoundError:
+                        pass
+                store.commit()
+            finally:
+                store.close()
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
@@ -441,7 +459,7 @@ class YamlTestItem(pytest.Item):
                 ).run()
         finally:
             temp_dir.cleanup()
-            # remove created modules
+            # remove created modules from the shared cache
             if not self.disable_cache:
                 for file in self.files:
                     path = Path(file.path)
