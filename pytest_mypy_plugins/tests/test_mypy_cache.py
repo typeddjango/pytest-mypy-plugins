@@ -5,6 +5,7 @@ from sys import version_info
 from tempfile import TemporaryDirectory
 
 import pytest
+from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
 
 
 def test_non_test_case_files_remain(temp_dir: Path) -> None:
@@ -144,16 +145,32 @@ CACHE_FILES_REMOVED_TEST_DATA = {
 
 
 @pytest.mark.parametrize(
+    "mypy_cache_config",
+    [
+        pytest.param("", id="default"),
+        pytest.param("sqlite_cache = False\n", id="no-sqlite"),
+        pytest.param("fixed_format_cache = False\n", id="no-fixed-format"),
+        pytest.param("sqlite_cache = False\nfixed_format_cache = False\n", id="legacy"),
+    ],
+)
+@pytest.mark.parametrize(
     ("contents", "module_fpaths_no_suffix"),
     CACHE_FILES_REMOVED_TEST_DATA.values(),
     ids=CACHE_FILES_REMOVED_TEST_DATA.keys(),
 )
-def test_cache_files_removed(temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...]) -> None:
+def test_cache_files_removed(
+    temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...], mypy_cache_config: str
+) -> None:
     """Tests that cache files associated with ``files`` in a test case get removed"""
 
     cache_dir = temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
     # pytest and mypy hasn't been run yet, so no cache should exist
     assert not cache_dir.is_dir()
+
+    if mypy_cache_config:
+        config_lines = mypy_cache_config.strip().splitlines()
+        indented = "\n".join(f"    {line}" for line in config_lines)
+        contents = contents.replace("  main: |", f"  mypy_config: |\n{indented}\n  main: |")
 
     make_yaml_test_file(temp_dir, contents)
     res = subprocess.run(
@@ -193,13 +210,20 @@ def make_yaml_test_file(
 
 
 def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
+    stores: list[MetadataStore] = []
+    cache_dir_str = str(cache_dir)
+    if (cache_dir / "cache.db").is_file():
+        stores.append(SqliteMetadataStore(cache_dir_str))
+    if cache_dir.is_dir():
+        stores.append(FilesystemMetadataStore(cache_dir_str))
+
     created = []
-    for rel_path in module_rel_paths_no_suffix:
-        prefix = cache_dir / rel_path
-        data_file = prefix.with_suffix(".data.json")
-        if data_file.exists():
-            created.append(str(data_file.relative_to(cache_dir)))
-        meta_file = prefix.with_suffix(".meta.json")
-        if meta_file.exists():
-            created.append(str(meta_file.relative_to(cache_dir)))
+    for store in stores:
+        try:
+            for entry in store.list_all():
+                if any(entry.startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
+                    created.append(entry)
+        finally:
+            store.close()
+
     return created

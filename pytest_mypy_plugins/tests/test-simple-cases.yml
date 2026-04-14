@@ -6,8 +6,8 @@
     class MyClass:
         pass
 
-    reveal_type(a)  # N: Revealed type is "builtins.int"
-    reveal_type(b)  # N: Revealed type is "builtins.str"
+    reveal_type(a)  # N: Revealed type is "int"
+    reveal_type(b)  # N: Revealed type is "str"
 
 
 - case: revealed_type_with_environment
@@ -19,8 +19,8 @@
 
     b = 'hello'
 
-    reveal_type(a)  # N: Revealed type is "builtins.int"
-    reveal_type(b)  # N: Revealed type is "builtins.str"
+    reveal_type(a)  # N: Revealed type is "int"
+    reveal_type(b)  # N: Revealed type is "str"
   env:
     - DJANGO_SETTINGS_MODULE=mysettings
 
@@ -28,7 +28,7 @@
 - case: revealed_type_with_disabled_cache
   main: |
     a = 1
-    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(a)  # N: Revealed type is "int"
   disable_cache: true
 
 
@@ -37,13 +37,13 @@
     a = 1
     reveal_type(a)
   out: |
-    main:2: note: Revealed type is "builtins.int"
+    main:2: note: Revealed type is "int"
 
 
 - case: create_files
   main: |
     a = 1
-    reveal_type(a)  # N: Revealed type is "builtins.int"
+    reveal_type(a)  # N: Revealed type is "int"
   files:
     - path: myapp/__init__.py
     - path: myapp/models.py
