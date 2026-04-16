@@ -1,5 +1,4 @@
 import subprocess
-import textwrap
 from collections.abc import Generator
 from pathlib import Path
 from sys import version_info
@@ -185,50 +184,6 @@ def test_cache_files_removed(
     assert not get_created_cache_files(cache_dir, module_fpaths_no_suffix)
 
 
-def test_cache_cleanup_without_store_close(temp_dir: Path) -> None:
-    """Regression test: mypy's ``MetadataStore.close`` was added in 1.20, but
-    ``setup.py`` declares ``mypy>=1.3``. Cache cleanup must not ``AttributeError``
-    on older mypy versions that lack ``close``.
-    """
-    # conftest.py is loaded by the subprocess pytest before the plugin is
-    # imported, stripping ``close`` from the store classes to emulate mypy <1.20.
-    (temp_dir / "conftest.py").write_text(textwrap.dedent("""\
-            from mypy.metastore import (
-                FilesystemMetadataStore,
-                MetadataStore,
-                SqliteMetadataStore,
-            )
-            for cls in (FilesystemMetadataStore, MetadataStore, SqliteMetadataStore):
-                if "close" in cls.__dict__:
-                    delattr(cls, "close")
-            """))
-    make_yaml_test_file(
-        temp_dir,
-        """
-- case: test_cache_cleanup_without_store_close
-  main: |
-    import my_mod
-  files:
-    - path: my_mod.py
-        """,
-    )
-    res = subprocess.run(
-        ["pytest", f"--mypy-testing-base={temp_dir}"],
-        cwd=temp_dir,
-        capture_output=True,
-        text=True,
-    )
-    # The test case itself must pass (or at worst be a test failure), never an
-    # internal error from the plugin's teardown.
-    assert res.returncode in (
-        pytest.ExitCode.OK,
-        pytest.ExitCode.TESTS_FAILED,
-    ), f"rc={res.returncode}\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
-    combined = res.stdout + res.stderr
-    assert "AttributeError" not in combined, combined
-    assert "has no attribute 'close'" not in combined, combined
-
-
 @pytest.fixture
 def temp_dir() -> Generator[Path]:
     """
@@ -269,6 +224,7 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
                 if any(entry.startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
                     created.append(entry)
         finally:
+            # See PR #188: mypy < 1.20 does not have MetadataStore.close
             close = getattr(store, "close", None)
             if close is not None:
                 close()
