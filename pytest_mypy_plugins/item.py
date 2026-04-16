@@ -401,7 +401,11 @@ class YamlTestItem(pytest.Item):
                         pass
                 store.commit()
             finally:
-                store.close()
+                # ``MetadataStore.close`` was added in mypy 1.20; guard for older
+                # mypy versions that are still within our supported range (>=1.3).
+                close = getattr(store, "close", None)
+                if close is not None:
+                    close()
 
     def execute_extension_hook(self) -> None:
         extension_hook_fqname = self.config.option.mypy_extension_hook
