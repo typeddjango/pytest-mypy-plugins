@@ -1,5 +1,12 @@
 # Version history
 
+## 4.0.2
+
+### Bugfixes
+
+- Fixed cache closing logic on older mypy versions, #188
+
+
 ## 4.0.1
 
 ### Bugfixes
