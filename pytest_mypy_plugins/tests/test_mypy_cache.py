@@ -224,6 +224,9 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
                 if any(entry.startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
                     created.append(entry)
         finally:
-            store.close()
+            # See PR #188: mypy < 1.20 does not have MetadataStore.close
+            close = getattr(store, "close", None)
+            if close is not None:
+                close()
 
     return created
