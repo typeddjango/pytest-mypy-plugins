@@ -1,8 +1,8 @@
 import os.path
-import site
 import subprocess
 from pathlib import Path
 
+import mypy
 import pytest
 
 
@@ -155,7 +155,9 @@ def make_yaml_test_file(
     file_base_name: str = "test-case",
 ) -> None:
     output_path = root_dir.joinpath(file_base_name).with_suffix(".yml")
-    site_packages_path: Path | str = Path(site.getsitepackages()[0])
-    site_packages_path = os.path.relpath(site_packages_path, start=output_path)
-    contents = contents.format(site_packages_path=site_packages_path)
+    # Use the directory containing the installed mypy package as the site-packages path,
+    # since mypy may be installed in a user site-packages directory rather than the system one.
+    site_packages_path: Path = Path(mypy.__file__).parent.parent
+    site_packages_path_str = os.path.relpath(site_packages_path, start=output_path)
+    contents = contents.format(site_packages_path=site_packages_path_str)
     output_path.write_text(contents)

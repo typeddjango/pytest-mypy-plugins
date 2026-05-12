@@ -1,6 +1,7 @@
 import importlib
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -90,6 +91,17 @@ class ReturnCodes:
     SUCCESS = 0
     FAIL = 1
     FATAL_ERROR = 2
+
+
+def _get_sqlite_num_shards(cache_dir: str) -> int:
+    """Return the number of SQLite shards in the cache directory, or 0 if none exist."""
+    cache_dir_path = Path(cache_dir)
+    shard_files = [f for f in cache_dir_path.glob("cache.*.db") if re.match(r"^cache\.\d+\.db$", f.name)]
+    if shard_files:
+        return len(shard_files)
+    if (cache_dir_path / "cache.db").is_file():
+        return 1
+    return 0
 
 
 def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO) -> int:
@@ -374,7 +386,16 @@ class YamlTestItem(pytest.Item):
 
         # Build entry names to remove for each path component so namespace-package
         # cache entries are also cleaned (e.g. "pkg.*", "pkg/sub.*", "pkg/sub/mod.*").
-        suffixes = (".meta.json", ".data.json", ".err.json", ".meta.ff", ".data.ff", ".err.ff")
+        suffixes = (
+            ".meta.json",
+            ".data.json",
+            ".err.json",
+            ".meta_ex.json",
+            ".meta.ff",
+            ".data.ff",
+            ".err.ff",
+            ".meta_ex.ff",
+        )
         entries: list[str] = []
         accumulated = ""
         for i, part in enumerate(fpath_no_suffix.parts):
@@ -388,8 +409,9 @@ class YamlTestItem(pytest.Item):
             entries.extend(accumulated + s for s in suffixes)
 
         stores: list[MetadataStore] = []
-        if os.path.isfile(os.path.join(cache_dir, "cache.db")):
-            stores.append(SqliteMetadataStore(cache_dir))
+        num_shards = _get_sqlite_num_shards(cache_dir)
+        if num_shards > 0:
+            stores.append(SqliteMetadataStore(cache_dir, num_shards=num_shards))
         stores.append(FilesystemMetadataStore(cache_dir))
 
         for store in stores:

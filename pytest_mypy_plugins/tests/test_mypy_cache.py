@@ -1,3 +1,4 @@
+import re
 import subprocess
 from collections.abc import Generator
 from pathlib import Path
@@ -212,7 +213,10 @@ def make_yaml_test_file(
 def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
     stores: list[MetadataStore] = []
     cache_dir_str = str(cache_dir)
-    if (cache_dir / "cache.db").is_file():
+    shard_files = [f for f in cache_dir.glob("cache.*.db") if re.match(r"^cache\.\d+\.db$", f.name)]
+    if shard_files:
+        stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_files)))
+    elif (cache_dir / "cache.db").is_file():
         stores.append(SqliteMetadataStore(cache_dir_str))
     if cache_dir.is_dir():
         stores.append(FilesystemMetadataStore(cache_dir_str))
