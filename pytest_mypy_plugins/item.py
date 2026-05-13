@@ -1,3 +1,4 @@
+import glob
 import importlib
 import io
 import os
@@ -374,7 +375,17 @@ class YamlTestItem(pytest.Item):
 
         # Build entry names to remove for each path component so namespace-package
         # cache entries are also cleaned (e.g. "pkg.*", "pkg/sub.*", "pkg/sub/mod.*").
-        suffixes = (".meta.json", ".data.json", ".err.json", ".meta.ff", ".data.ff", ".err.ff")
+        suffixes = (
+            ".meta.json",
+            ".data.json",
+            ".err.json",
+            ".meta.ff",
+            ".data.ff",
+            ".err.ff",
+            # mypy >= 2.0 also writes a `.meta_ex` companion file
+            ".meta_ex.json",
+            ".meta_ex.ff",
+        )
         entries: list[str] = []
         accumulated = ""
         for i, part in enumerate(fpath_no_suffix.parts):
@@ -388,7 +399,17 @@ class YamlTestItem(pytest.Item):
             entries.extend(accumulated + s for s in suffixes)
 
         stores: list[MetadataStore] = []
-        if os.path.isfile(os.path.join(cache_dir, "cache.db")):
+
+        # mypy >= 2.0 shards the sqlite cache across `cache.{i}.db` files instead of one `cache.db` file
+        # https://github.com/python/mypy/pull/21292
+        shard_dbs = glob.glob(os.path.join(cache_dir, "cache.*.db"))
+        if shard_dbs:
+            try:
+                stores.append(SqliteMetadataStore(cache_dir, num_shards=len(shard_dbs)))
+            except TypeError:
+                # For backward compatibility with `SqliteMetadataStore` with no `num_shards` arg.
+                stores.append(SqliteMetadataStore(cache_dir))
+        elif os.path.isfile(os.path.join(cache_dir, "cache.db")):
             stores.append(SqliteMetadataStore(cache_dir))
         stores.append(FilesystemMetadataStore(cache_dir))
 
