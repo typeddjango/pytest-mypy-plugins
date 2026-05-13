@@ -218,7 +218,8 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
     shard_dbs = glob.glob(os.path.join(cache_dir_str, "cache.*.db"))
     if shard_dbs:
         try:
-            stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs)))
+            # `num_shards` was added in mypy 2.0; pinned lint mypy is older.
+            stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs)))  # type: ignore[call-arg]
         except TypeError:
             stores.append(SqliteMetadataStore(cache_dir_str))
     elif (cache_dir / "cache.db").is_file():

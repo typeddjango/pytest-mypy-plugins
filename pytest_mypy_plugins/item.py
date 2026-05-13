@@ -405,7 +405,8 @@ class YamlTestItem(pytest.Item):
         shard_dbs = glob.glob(os.path.join(cache_dir, "cache.*.db"))
         if shard_dbs:
             try:
-                stores.append(SqliteMetadataStore(cache_dir, num_shards=len(shard_dbs)))
+                # `num_shards` was added in mypy 2.0; pinned lint mypy is older.
+                stores.append(SqliteMetadataStore(cache_dir, num_shards=len(shard_dbs)))  # type: ignore[call-arg]
             except TypeError:
                 # For backward compatibility with `SqliteMetadataStore` with no `num_shards` arg.
                 stores.append(SqliteMetadataStore(cache_dir))

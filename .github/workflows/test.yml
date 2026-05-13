@@ -46,16 +46,17 @@ jobs:
       fail-fast: false
       matrix:
         mypy-version:
-          - "==1.3.0" # Lowest supported mypy version
-          - "==1.19.1"
-          - "==2.0.0"
+          - "~=1.3.0" # Lowest supported mypy version
+          - "~=1.19.1"
+          - "~=2.0.0"
 
     steps:
     - uses: actions/checkout@v6
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: "3.14"
+        # 3.11 is the highest Python supported by the lowest mypy in the matrix.
+        python-version: "3.11"
     - name: Install dependencies
       run: |
         pip install -U pip setuptools wheel
