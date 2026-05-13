@@ -1,3 +1,5 @@
+import glob
+import os
 import subprocess
 from collections.abc import Generator
 from pathlib import Path
@@ -212,7 +214,14 @@ def make_yaml_test_file(
 def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
     stores: list[MetadataStore] = []
     cache_dir_str = str(cache_dir)
-    if (cache_dir / "cache.db").is_file():
+    # mypy >= 2.0 shards the sqlite cache across `cache.{i}.db` files instead of one `cache.db` file
+    shard_dbs = glob.glob(os.path.join(cache_dir_str, "cache.*.db"))
+    if shard_dbs:
+        try:
+            stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs)))
+        except TypeError:
+            stores.append(SqliteMetadataStore(cache_dir_str))
+    elif (cache_dir / "cache.db").is_file():
         stores.append(SqliteMetadataStore(cache_dir_str))
     if cache_dir.is_dir():
         stores.append(FilesystemMetadataStore(cache_dir_str))
