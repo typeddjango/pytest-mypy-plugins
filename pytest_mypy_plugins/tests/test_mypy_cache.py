@@ -1,3 +1,5 @@
+import glob
+import os
 import subprocess
 from collections.abc import Generator
 from pathlib import Path
@@ -212,7 +214,15 @@ def make_yaml_test_file(
 def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
     stores: list[MetadataStore] = []
     cache_dir_str = str(cache_dir)
-    if (cache_dir / "cache.db").is_file():
+    # mypy >= 2.0 shards the sqlite cache across `cache.{i}.db` files instead of one `cache.db` file
+    shard_dbs = glob.glob(os.path.join(cache_dir_str, "cache.*.db"))
+    if shard_dbs:
+        try:
+            # `num_shards` was added in mypy 2.0; pinned lint mypy is older.
+            stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs)))  # type: ignore[call-arg]
+        except TypeError:
+            stores.append(SqliteMetadataStore(cache_dir_str))
+    elif (cache_dir / "cache.db").is_file():
         stores.append(SqliteMetadataStore(cache_dir_str))
     if cache_dir.is_dir():
         stores.append(FilesystemMetadataStore(cache_dir_str))
@@ -221,7 +231,7 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
     for store in stores:
         try:
             for entry in store.list_all():
-                if any(entry.startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
+                if any(os.path.normpath(entry).startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
                     created.append(entry)
         finally:
             # See PR #188: mypy < 1.20 does not have MetadataStore.close
