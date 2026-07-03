@@ -365,6 +365,11 @@ class YamlTestItem(pytest.Item):
             self.base_pyproject_toml_fpath = None
         self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
 
+        # The mypy cache is not safe for concurrent use;
+        # give each `pytest-xdist` worker its own cache directory.
+        if xdist_worker := os.environ.get("PYTEST_XDIST_WORKER"):
+            self.incremental_cache_dir = os.path.join(self.incremental_cache_dir, xdist_worker)
+
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_dir = os.path.join(
             self.incremental_cache_dir,
