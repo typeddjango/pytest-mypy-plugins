@@ -286,7 +286,7 @@ def extract_output_matchers_from_comments(fname: str, input_lines: List[str], re
 
     The result is a list pf output matchers
     """
-    fname = fname.replace(".py", "")
+    fname = fname.removesuffix(".py")
     matchers = []
     for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
