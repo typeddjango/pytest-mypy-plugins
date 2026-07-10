@@ -130,6 +130,20 @@
         "type": "boolean",
         "description": "Allow regular expressions in comments to be matched against actual output. _See pytest_mypy_plugins/tests/test-regex_assertions.yml for examples_",
         "default": false
+      },
+      "marks": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_]\\w*$"
+        },
+        "description": "Pytest markers to apply to the test case, enabling `pytest -m <marker>` filtering. Markers should be registered in your `pytest.ini` / `pyproject.toml` as usual.",
+        "default": [],
+        "examples": [
+          [
+            "slow"
+          ]
+        ]
       }
     },
     "required": [

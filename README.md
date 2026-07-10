@@ -92,6 +92,7 @@ On top of that, each case must comply to following types:
 | `skip`          | `str`                                                  | Expression evaluated with following globals set: `sys`, `os`, `pytest` and `platform`                               |
 | `expect_fail`   | `bool`                                                 | Mark test case as an expected failure, like [`@pytest.mark.xfail`](https://docs.pytest.org/en/stable/skipping.html) |
 | `regex`         | `str`                                                  | Allow regular expressions in comments to be matched against actual output. Defaults to "no", i.e. matches full text.|
+| `marks`         | `Optional[List[str]]=[]`                               | Pytest markers to apply to the test case, so it can be selected with [`pytest -m <marker>`](https://docs.pytest.org/en/stable/example/markers.html). Applied to every `parametrized` variant of the case.  |
 
 (*) Appendix to **pseudo** types used above:
 
@@ -111,6 +112,9 @@ Implementation notes:
 - `skip` - an expression set in `skip` is passed directly into
   [`eval`](https://docs.python.org/3/library/functions.html#eval). It is advised to take a peek and
   learn about how `eval` works.
+- `marks` - custom markers should be registered in your `pytest.ini` /
+  `pyproject.toml` just like any other pytest marker. Unregistered markers emit
+  pytest's `PytestUnknownMarkWarning` and fail under `--strict-markers`.
 
 Repository also offers a [JSONSchema](pytest_mypy_plugins/schema.json), with which
 it validates the input. It can also offer your editor auto-completions, descriptions, and validation.
@@ -188,6 +192,25 @@ Properties that you can parametrize:
   main: |
     a = 'hello'
     reveal_type(a)  # NR: .*str.*
+```
+
+#### 6. Markers
+
+```yaml
+- case: test_slow_inference
+  marks:
+    - slow
+  main: |
+    reveal_type('abc')  # N: Revealed type is 'builtins.str'
+```
+
+Register the marker in your `pytest.ini` / `pyproject.toml`, then run only the
+marked cases with `pytest -m slow`:
+
+```ini
+[pytest]
+markers =
+    slow: slow tests
 ```
 
 ## Options
