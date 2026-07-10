@@ -334,8 +334,11 @@ class YamlTestItem(pytest.Item):
         mypy_config: str,
         parsed_test_data: Dict[str, Any],
         expect_fail: bool,
+        marks: List[str],
     ) -> None:
         super().__init__(name, parent, config)
+        for mark in marks:
+            self.add_marker(mark)
         self.files = files
         self.environment_variables = environment_variables
         self.disable_cache = disable_cache

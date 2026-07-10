@@ -1,0 +1,15 @@
+- case: single_marked_case
+  marks:
+    - foo
+  main: |
+    a = 1
+    reveal_type(a)  # N: Revealed type is "int"
+
+
+- case: multi_marked_case
+  marks:
+    - foo
+    - bar
+  main: |
+    b = 'hello'
+    reveal_type(b)  # N: Revealed type is "str"

@@ -1,5 +1,13 @@
 # Version history
 
+## Unreleased
+
+### Features
+
+- Added a `marks` field to test cases, applying pytest markers so cases can be
+  selected with `pytest -m <marker>`, #32
+
+
 ## 4.0.2
 
 ### Bugfixes
