@@ -42,6 +42,19 @@ def test_mypy_config_is_not_an_object() -> None:
     )
 
 
+def test_marks_pass_closed_schema() -> None:
+    validate_schema(
+        [
+            {
+                "case": "marked_case",
+                "main": "reveal_type(1)",
+                "marks": ["slow", "integration"],
+            }
+        ],
+        is_closed=True,
+    )
+
+
 def test_closed_schema() -> None:
     with pytest.raises(jsonschema.exceptions.ValidationError) as ex:
         validate_schema(

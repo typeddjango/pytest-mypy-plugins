@@ -6,6 +6,10 @@ warn_unreachable = true
 [tool.pytest.ini_options]
 python_files = "test_*.py"
 addopts = "-s --mypy-extension-hook pytest_mypy_plugins.tests.reveal_type_hook.hook"
+markers = [
+    "foo: used by test-marks.yml fixtures",
+    "bar: used by test-marks.yml fixtures",
+]
 
 [tool.black]
 line-length = 120
