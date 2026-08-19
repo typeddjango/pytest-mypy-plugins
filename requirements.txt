@@ -4,5 +4,5 @@ types-decorator
 types-PyYAML
 types-setuptools
 types-regex
-mypy==2.2.0
+mypy==2.3.1
 -e .
