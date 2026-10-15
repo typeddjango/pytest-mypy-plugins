@@ -6,6 +6,8 @@
 
 - Added a `marks` field to test cases, applying pytest markers so cases can be
   selected with `pytest -m <marker>`, #32
+- Added a 'placeholders' field to test cases, allowing placeholder text for use
+  in revealed types, #54
 
 
 ## 4.0.2

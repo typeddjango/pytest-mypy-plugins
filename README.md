@@ -226,6 +226,8 @@ markers =
 
 #### 7. Placeholders
 
+Placeholder text for use in revealed types
+
 ```yaml
 - case: test_placeholder
   main: |

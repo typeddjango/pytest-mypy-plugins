@@ -144,11 +144,20 @@
             "slow"
           ]
         ]
+      },
+      "placeholders": {
+        "type": "object",
+        "description": "Placeholder text for use in revealed types",
+        "additionalProperties": { "type": "string" }
       }
     },
-    "required": [
-      "case",
-      "main"
+    "oneOf": [
+      {
+        "required": ["case", "main"]
+      },
+      {
+        "required": ["placeholders"]
+      }
     ]
   },
   "definitions": {
