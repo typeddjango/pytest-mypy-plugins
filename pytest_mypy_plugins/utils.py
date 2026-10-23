@@ -7,7 +7,18 @@ import sys
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jinja2
 import regex
@@ -56,7 +67,7 @@ def fname_to_module(fpath: Path, root_path: Path) -> Optional[str]:
 
 # AssertStringArraysEqual displays special line alignment helper messages if
 # the first different line has at least this many characters,
-MIN_LINE_LENGTH_FOR_ALIGNMENT = 5
+_MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
 
 
 @dataclass
@@ -268,8 +279,8 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
             first_diff_actual is not None
             and first_diff_expected is not None
             and (
-                len(first_diff_actual) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
-                or len(str(first_diff_expected)) >= MIN_LINE_LENGTH_FOR_ALIGNMENT
+                len(first_diff_actual) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
+                or len(str(first_diff_expected)) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
             )
         ):
             error_message = _add_aligned_message(str(first_diff_expected), first_diff_actual, error_message)
