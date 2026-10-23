@@ -1,12 +1,19 @@
 # Version history
 
-## Unreleased
+## 4.1.0
 
 ### Features
 
 - Added a `marks` field to test cases, applying pytest markers so cases can be
   selected with `pytest -m <marker>`, #32
-- Adds official `python3.15` support
+- Adds official `python3.15` support, #206
+- Support `mypy@2.4.0`
+
+### Bugfixes
+
+- Remove fspath argument from `YamlTestFile.from_parent`, #195
+- Isolate mypy cache per `pytest-xdist` worker, #196
+- Include tests in the distribution, #204
 
 
 ## 4.0.2
