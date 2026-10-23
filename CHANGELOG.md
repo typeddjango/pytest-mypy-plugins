@@ -6,7 +6,7 @@
 
 - Added a `marks` field to test cases, applying pytest markers so cases can be
   selected with `pytest -m <marker>`, #32
-- Adds official `python3.14` support
+- Adds official `python3.15` support
 
 
 ## 4.0.2
