@@ -7,12 +7,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    TextIO,
-)
+from typing import TYPE_CHECKING, Any, Literal, Optional, TextIO
 
 import py
 import pytest
@@ -512,7 +507,7 @@ class YamlTestItem(pytest.Item):
         return None
 
     def repr_failure(
-        self, excinfo: ExceptionInfo[BaseException], style: "TracebackStyle" | None = None
+        self, excinfo: ExceptionInfo[BaseException], style: Optional["TracebackStyle"] = None
     ) -> str | TerminalRepr:
         if excinfo.errisinstance(SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
