@@ -4,20 +4,13 @@ import inspect
 import os
 import re
 import sys
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
     Final,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
 )
 
 import jinja2
@@ -57,7 +50,7 @@ def temp_sys_modules() -> Iterator[None]:
         sys.modules = sys_modules.copy()
 
 
-def fname_to_module(fpath: Path, root_path: Path) -> Optional[str]:
+def fname_to_module(fpath: Path, root_path: Path) -> str | None:
     try:
         relpath = fpath.relative_to(root_path).with_suffix("")
         return str(relpath).replace(os.sep, ".")
@@ -77,7 +70,7 @@ class OutputMatcher:
     severity: str
     message: str
     regex: bool
-    col: Optional[str] = None
+    col: str | None = None
 
     def matches(self, actual: str) -> bool:
         if self.regex:
@@ -107,7 +100,7 @@ class OutputMatcher:
 
 
 class TypecheckAssertionError(AssertionError):
-    def __init__(self, error_message: Optional[str] = None, lineno: int = 0) -> None:
+    def __init__(self, error_message: str | None = None, lineno: int = 0) -> None:
         self.error_message = error_message or ""
         self.lineno = lineno
 
@@ -118,7 +111,7 @@ class TypecheckAssertionError(AssertionError):
         return self.error_message
 
 
-def remove_common_prefix(lines: List[str]) -> List[str]:
+def remove_common_prefix(lines: list[str]) -> list[str]:
     """Remove common directory prefix from all strings in a.
 
     This uses a naive string replace; it seems to work well enough. Also
@@ -188,7 +181,7 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
     return error_message
 
 
-def remove_empty_lines(lines: List[str]) -> List[str]:
+def remove_empty_lines(lines: list[str]) -> list[str]:
     filtered_lines = []
     for line in lines:
         if line:
@@ -196,8 +189,8 @@ def remove_empty_lines(lines: List[str]) -> List[str]:
     return filtered_lines
 
 
-def sorted_by_file_and_line(lines: List[str]) -> List[str]:
-    def extract_parts_as_tuple(line: str) -> Tuple[str, int]:
+def sorted_by_file_and_line(lines: list[str]) -> list[str]:
+    def extract_parts_as_tuple(line: str) -> tuple[str, int]:
         if len(line.split(":", maxsplit=2)) < 3:
             return "", 0
 
@@ -210,7 +203,7 @@ def sorted_by_file_and_line(lines: List[str]) -> List[str]:
     return sorted(lines, key=extract_parts_as_tuple)
 
 
-def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[str]) -> None:
+def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[str]) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
@@ -222,7 +215,7 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
     def format_matched_line(line: str, width: int = 100) -> str:
         return f" {line[:width]}..." if len(line) > width else f" {line}"
 
-    def format_error_lines(lines: List[str]) -> str:
+    def format_error_lines(lines: list[str]) -> str:
         return "\n".join(lines) if lines else "  (empty)"
 
     expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
@@ -230,7 +223,7 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
 
     actual = remove_common_prefix(actual)
 
-    diff_lines: Dict[int, Tuple[OutputMatcher, str]] = {
+    diff_lines: dict[int, tuple[OutputMatcher, str]] = {
         i: (e, a)
         for i, (e, a) in enumerate(zip_longest(expected, actual))
         if e is None or a is None or not e.matches(a)
@@ -291,7 +284,7 @@ def assert_expected_matched_actual(expected: List[OutputMatcher], actual: List[s
         )
 
 
-def extract_output_matchers_from_comments(fname: str, input_lines: List[str], regex: bool) -> List[OutputMatcher]:
+def extract_output_matchers_from_comments(fname: str, input_lines: list[str], regex: bool) -> list[OutputMatcher]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
@@ -328,7 +321,7 @@ def extract_output_matchers_from_comments(fname: str, input_lines: List[str], re
     return matchers
 
 
-def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> List[OutputMatcher]:
+def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> list[OutputMatcher]:
     """Transform output lines such as 'function:9: E: message'
 
     The result is a list of output matchers
@@ -370,7 +363,7 @@ def render_template(template: str, data: Mapping[str, Any]) -> str:
     return t.render({k: v if v is not None else "None" for k, v in data.items()})
 
 
-def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[str]]]:
+def get_func_first_lnum(attr: Callable[..., None]) -> tuple[int, list[str]] | None:
     lines, _ = inspect.getsourcelines(attr)
     for lnum, line in enumerate(lines):
         no_space_line = line.strip()
@@ -380,7 +373,7 @@ def get_func_first_lnum(attr: Callable[..., None]) -> Optional[Tuple[int, List[s
 
 
 @contextmanager
-def cd(path: Union[str, Path]) -> Iterator[None]:
+def cd(path: str | Path) -> Iterator[None]:
     """Context manager to temporarily change working directories"""
     if not path:
         return

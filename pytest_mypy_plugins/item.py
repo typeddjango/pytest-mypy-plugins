@@ -10,13 +10,8 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
     Literal,
-    Optional,
     TextIO,
-    Tuple,
-    Union,
 )
 
 import py
@@ -59,7 +54,7 @@ class TraceLastReprEntry(ReprEntry):
         return
 
 
-def make_files(rootdir: Path, files_to_create: Dict[str, str]) -> List[str]:
+def make_files(rootdir: Path, files_to_create: dict[str, str]) -> list[str]:
     created_modules = []
     for rel_fpath, file_contents in files_to_create.items():
         fpath = rootdir / rel_fpath
@@ -80,7 +75,7 @@ def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
     return line.strip().replace(".py:", ":")
 
 
-def maybe_to_abspath(rel_or_abs: str, rootdir: Optional[Path]) -> str:
+def maybe_to_abspath(rel_or_abs: str, rootdir: Path | None) -> str:
     rel_or_abs = os.path.expandvars(rel_or_abs)
     if rootdir is None or os.path.isabs(rel_or_abs):
         return rel_or_abs
@@ -93,7 +88,7 @@ class ReturnCodes:
     FATAL_ERROR = 2
 
 
-def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO) -> int:
+def run_mypy_typechecking(cmd_options: list[str], stdout: TextIO, stderr: TextIO) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -101,7 +96,7 @@ def run_mypy_typechecking(cmd_options: List[str], stdout: TextIO, stderr: TextIO
 
     # Different mypy versions have different arity of `flush_errors`: 2 and 3 params
     def flush_errors(*args: Any) -> None:
-        new_messages: List[str]
+        new_messages: list[str]
         serious: bool
         *_, new_messages, serious = args
         error_messages.extend(new_messages)
@@ -141,9 +136,9 @@ class MypyExecutor:
         self,
         *,
         same_process: bool,
-        rootdir: Union[Path, None],
+        rootdir: Path | None,
         execution_path: Path,
-        environment_variables: Dict[str, Any],
+        environment_variables: dict[str, Any],
         mypy_executable: str,
         modify_pythonpath: bool,
     ) -> None:
@@ -154,14 +149,14 @@ class MypyExecutor:
         self.environment_variables = environment_variables
         self.modify_pythonpath = modify_pythonpath
 
-    def execute(self, mypy_cmd_options: List[str]) -> Tuple[int, Tuple[str, str]]:
+    def execute(self, mypy_cmd_options: list[str]) -> tuple[int, tuple[str, str]]:
         # Returns (returncode, (stdout, stderr))
         if self.same_process:
             return self._typecheck_in_same_process(mypy_cmd_options)
         else:
             return self._typecheck_in_new_subprocess(mypy_cmd_options)
 
-    def _typecheck_in_new_subprocess(self, mypy_cmd_options: List[Any]) -> Tuple[int, Tuple[str, str]]:
+    def _typecheck_in_new_subprocess(self, mypy_cmd_options: list[Any]) -> tuple[int, tuple[str, str]]:
         if self.modify_pythonpath:
             # add current directory to path
             self._collect_python_path(self.rootdir)
@@ -183,7 +178,7 @@ class MypyExecutor:
         captured_stderr = completed.stderr.decode()
         return completed.returncode, (captured_stdout, captured_stderr)
 
-    def _typecheck_in_same_process(self, mypy_cmd_options: List[Any]) -> Tuple[int, Tuple[str, str]]:
+    def _typecheck_in_same_process(self, mypy_cmd_options: list[Any]) -> tuple[int, tuple[str, str]]:
         return_code = -1
         with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
             # add custom environment variables
@@ -203,7 +198,7 @@ class MypyExecutor:
 
             return return_code, (stdout_value, stderr_value)
 
-    def _collect_python_path(self, rootdir: Optional[Path]) -> None:
+    def _collect_python_path(self, rootdir: Path | None) -> None:
         python_path_parts = []
 
         existing_python_path = os.environ.get("PYTHONPATH")
@@ -217,7 +212,7 @@ class MypyExecutor:
 
         self.environment_variables["PYTHONPATH"] = ":".join(python_path_parts)
 
-    def _collect_mypy_path(self, rootdir: Optional[Path]) -> None:
+    def _collect_mypy_path(self, rootdir: Path | None) -> None:
         mypy_path_parts = []
 
         existing_mypy_path = os.environ.get("MYPYPATH")
@@ -234,7 +229,7 @@ class MypyExecutor:
 
 
 class OutputChecker:
-    def __init__(self, expect_fail: bool, execution_path: Path, expected_output: List[OutputMatcher]) -> None:
+    def __init__(self, expect_fail: bool, execution_path: Path, expected_output: list[OutputMatcher]) -> None:
         self.expect_fail = expect_fail
         self.execution_path = execution_path
         self.expected_output = expected_output
@@ -263,10 +258,10 @@ class Runner:
     def __init__(
         self,
         *,
-        files: List[File],
+        files: list[File],
         config: Config,
         main_file: Path,
-        config_file: Optional[str],
+        config_file: str | None,
         disable_cache: bool,
         mypy_executor: MypyExecutor,
         output_checker: OutputChecker,
@@ -301,7 +296,7 @@ class Runner:
         fpath.parent.mkdir(parents=True, exist_ok=True)
         fpath.write_text(file.content)
 
-    def _prepare_mypy_cmd_options(self) -> List[str]:
+    def _prepare_mypy_cmd_options(self) -> list[str]:
         mypy_cmd_options = [
             "--show-traceback",
             "--no-error-summary",
@@ -323,18 +318,18 @@ class YamlTestItem(pytest.Item):
     def __init__(
         self,
         name: str,
-        parent: Optional[YamlTestFile] = None,
-        config: Optional[Config] = None,
+        parent: YamlTestFile | None = None,
+        config: Config | None = None,
         *,
-        files: List[File],
+        files: list[File],
         starting_lineno: int,
-        expected_output: List[OutputMatcher],
-        environment_variables: Dict[str, Any],
+        expected_output: list[OutputMatcher],
+        environment_variables: dict[str, Any],
         disable_cache: bool,
         mypy_config: str,
-        parsed_test_data: Dict[str, Any],
+        parsed_test_data: dict[str, Any],
         expect_fail: bool,
-        marks: List[str],
+        marks: list[str],
     ) -> None:
         super().__init__(name, parent, config)
         for mark in marks:
@@ -501,7 +496,7 @@ class YamlTestItem(pytest.Item):
 
         assert not os.path.exists(temp_dir.name)
 
-    def prepare_config_file(self, execution_path: Path) -> Optional[str]:
+    def prepare_config_file(self, execution_path: Path) -> str | None:
         # Merge (`self.base_ini_fpath` or `base_pyproject_toml_fpath`)
         # and `self.additional_mypy_config`
         # into one file and copy to the typechecking folder:
@@ -517,8 +512,8 @@ class YamlTestItem(pytest.Item):
         return None
 
     def repr_failure(
-        self, excinfo: ExceptionInfo[BaseException], style: Optional["TracebackStyle"] = None
-    ) -> Union[str, TerminalRepr]:
+        self, excinfo: ExceptionInfo[BaseException], style: "TracebackStyle" | None = None
+    ) -> str | TerminalRepr:
         if excinfo.errisinstance(SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
             # enough context about what happened so that a stack trace is not useful.
@@ -540,5 +535,5 @@ class YamlTestItem(pytest.Item):
         else:
             return super().repr_failure(excinfo, style="native")
 
-    def reportinfo(self) -> Tuple[Union[Path, str], Optional[int], str]:
+    def reportinfo(self) -> tuple[Path | str, int | None, str]:
         return self.path, None, self.name
