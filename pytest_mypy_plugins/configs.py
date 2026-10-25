@@ -1,14 +1,14 @@
 from configparser import ConfigParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Final, Optional
+from typing import Final
 
 import tomlkit
 
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 
 
-def join_ini_configs(base_ini_fpath: Optional[str], additional_mypy_config: str, execution_path: Path) -> Optional[str]:
+def join_ini_configs(base_ini_fpath: str | None, additional_mypy_config: str, execution_path: Path) -> str | None:
     mypy_ini_config = ConfigParser()
     if base_ini_fpath:
         mypy_ini_config.read(base_ini_fpath)
@@ -25,9 +25,7 @@ def join_ini_configs(base_ini_fpath: Optional[str], additional_mypy_config: str,
     return None
 
 
-def join_toml_configs(
-    base_pyproject_toml_fpath: str, additional_mypy_config: str, execution_path: Path
-) -> Optional[str]:
+def join_toml_configs(base_pyproject_toml_fpath: str, additional_mypy_config: str, execution_path: Path) -> str | None:
     if base_pyproject_toml_fpath:
         with open(base_pyproject_toml_fpath) as f:
             toml_config = tomlkit.parse(f.read())

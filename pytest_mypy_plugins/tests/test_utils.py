@@ -1,5 +1,5 @@
 # encoding=utf-8
-from typing import List, NamedTuple
+from typing import NamedTuple
 
 import pytest
 
@@ -14,9 +14,9 @@ from pytest_mypy_plugins.utils import (
 
 
 class ExpectMatchedActualTestData(NamedTuple):
-    source_lines: List[str]
-    actual_lines: List[str]
-    expected_message_lines: List[str]
+    source_lines: list[str]
+    actual_lines: list[str]
+    expected_message_lines: list[str]
 
 
 def test_render_template_with_None_value() -> None:
@@ -176,9 +176,9 @@ expect_matched_actual_data = [
 
 @pytest.mark.parametrize("source_lines,actual_lines,expected_message_lines", expect_matched_actual_data)
 def test_assert_expected_matched_actual_failures(
-    source_lines: List[str], actual_lines: List[str], expected_message_lines: List[str]
+    source_lines: list[str], actual_lines: list[str], expected_message_lines: list[str]
 ) -> None:
-    expected: List[OutputMatcher] = extract_output_matchers_from_comments("main", source_lines, False)
+    expected: list[OutputMatcher] = extract_output_matchers_from_comments("main", source_lines, False)
     expected_error_message = "\n".join(expected_message_lines)
 
     with pytest.raises(TypecheckAssertionError) as e:
@@ -207,8 +207,8 @@ def test_assert_expected_matched_actual_failures(
         ],
     ],
 )
-def test_sorted_by_file_and_line_is_stable(input_lines: List[str]) -> None:
-    def lines_for_file(lines: List[str], fname: str) -> List[str]:
+def test_sorted_by_file_and_line_is_stable(input_lines: list[str]) -> None:
+    def lines_for_file(lines: list[str], fname: str) -> list[str]:
         prefix = f"{fname}:"
         return [line for line in lines if line.startswith(prefix)]
 

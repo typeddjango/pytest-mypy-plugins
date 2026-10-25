@@ -4,21 +4,14 @@ import pathlib
 import platform
 import sys
 import tempfile
+from collections.abc import Hashable, Iterator, Mapping
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Hashable,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Set,
 )
 
 import jsonschema
-import py.path
 import pytest
 import yaml
 from _pytest.config.argparsing import Parser
@@ -53,8 +46,8 @@ def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     jsonschema.validate(instance=data, schema=schema)
 
 
-def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
-    files: List[File] = []
+def parse_test_files(test_files: list[dict[str, Any]]) -> list[File]:
+    files: list[File] = []
     for test_file in test_files:
         path = test_file.get("path", "main.py")
         file = File(path=path, content=test_file.get("content", ""))
@@ -62,20 +55,20 @@ def parse_test_files(test_files: List[Dict[str, Any]]) -> List[File]:
     return files
 
 
-def parse_environment_variables(env_vars: List[str]) -> Dict[str, str]:
-    parsed_vars: Dict[str, str] = {}
+def parse_environment_variables(env_vars: list[str]) -> dict[str, str]:
+    parsed_vars: dict[str, str] = {}
     for env_var in env_vars:
         name, _, value = env_var.partition("=")
         parsed_vars[name] = value
     return parsed_vars
 
 
-def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any]]:
+def parse_parametrized(params: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     if not params:
         return [{}]
 
-    parsed_params: List[Mapping[str, Any]] = []
-    known_params: Optional[Set[str]] = None
+    parsed_params: list[Mapping[str, Any]] = []
+    known_params: set[str] | None = None
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
         if not known_params:
@@ -92,7 +85,7 @@ def parse_parametrized(params: List[Mapping[str, Any]]) -> List[Mapping[str, Any
 
 
 class SafeLineLoader(yaml.SafeLoader):
-    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> Dict[Hashable, Any]:
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
@@ -174,7 +167,7 @@ class YamlTestFile(pytest.File):
         return bool(eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform}))
 
 
-def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> Optional[YamlTestFile]:
+def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> YamlTestFile | None:
     if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
         return YamlTestFile.from_parent(parent, path=file_path)
     return None
