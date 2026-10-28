@@ -35,6 +35,7 @@ _MAX_LINE_SPLIT_PARTS: Final = 3
 _ALIGNMENT_MARKER: Final = "^"
 _TRUNCATION_MARKER: Final = "..."
 
+
 @contextmanager
 def temp_environ() -> Iterator[None]:
     """Allow the ability to set os.environ temporarily"""
@@ -75,7 +76,7 @@ def fname_to_module(fpath: Path, root_path: Path) -> str | None:
 
 @dataclass
 class OutputMatcher:
-    fname: str
+    file_name: str
     lnum: int
     severity: str
     message: str
@@ -86,9 +87,9 @@ class OutputMatcher:
         if self.regex:
             pattern = (
                 regex.escape(
-                    f"{self.fname}:{self.lnum}: {self.severity}: "
+                    f"{self.file_name}:{self.lnum}: {self.severity}: "
                     if self.col is None
-                    else f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: "
+                    else f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: "
                 )
                 + self.message
             )
@@ -97,8 +98,8 @@ class OutputMatcher:
 
     def __str__(self) -> str:
         if self.col is None:
-            return f"{self.fname}:{self.lnum}: {self.severity}: {self.message}"
-        return f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
+            return f"{self.file_name}:{self.lnum}: {self.severity}: {self.message}"
+        return f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
 
     def __format__(self, format_spec: str) -> str:
         return format_spec.format(str(self))
@@ -163,7 +164,7 @@ def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
         trunc = True
 
     if trunc:
-        word1= _TRUNCATION_MARKER + word1
+        word1 = _TRUNCATION_MARKER + word1
         word2 = _TRUNCATION_MARKER + word2
 
     max_len = max(len(word1), len(word2))
@@ -196,7 +197,7 @@ def sorted_by_file_and_line(lines: list[str]) -> list[str]:
 
         file_name, line_number, _ = line.split(":", maxsplit=2)
         try:
-            return fname, int(line_number)
+            return file_name, int(line_number)
         except ValueError:
             return "", 0
 
@@ -218,7 +219,7 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
     def format_error_lines(lines: list[str]) -> str:
         return "\n".join(lines) if lines else "  (empty)"
 
-    expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
+    expected = sorted(expected, key=lambda om: (om.file_name, om.lnum))
     actual = remove_common_prefix(sorted_by_file_and_line(remove_empty_lines(actual)))
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {

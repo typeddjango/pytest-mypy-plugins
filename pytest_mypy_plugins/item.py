@@ -8,8 +8,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from enum import IntEnum, unique
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO
+from typing import TYPE_CHECKING, Any, Literal, TextIO, final
 
 import pytest
 from _pytest._code import ExceptionInfo
@@ -78,7 +79,9 @@ def maybe_to_abspath(rel_or_abs: str, rootdir: Path | None) -> str:
     return str(rootdir / rel_or_abs)
 
 
-class ReturnCodes:
+@final
+@unique
+class ReturnCodes(IntEnum):
     SUCCESS = 0
     FAIL = 1
     FATAL_ERROR = 2
@@ -415,11 +418,7 @@ class YamlTestItem(pytest.Item):
 
         for store in stores:
             try:
-                for entry in entries:
-                    try:
-                        store.remove(entry)
-                    except FileNotFoundError:
-                        pass
+                self._remove_if_exists(store, entries)
                 store.commit()
             finally:
                 # ``MetadataStore.close`` was added in mypy 1.20; guard for older
@@ -533,3 +532,10 @@ class YamlTestItem(pytest.Item):
 
     def reportinfo(self) -> tuple[Path | str, int | None, str]:
         return self.path, None, self.name
+
+    def _remove_if_exists(self, store: MetadataStore, entries: list[str]) -> None:
+        for entry in entries:
+            try:
+                store.remove(entry)
+            except FileNotFoundError:
+                pass

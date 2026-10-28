@@ -75,7 +75,7 @@ def parse_parametrized(params: list[Mapping[str, Any]]) -> list[Mapping[str, Any
             raise ValueError(
                 "All parametrized entries must have same keys."
                 f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
-                "was spotted at {idx} position",
+                f"was spotted at {idx} position",
             )
         parsed_params.append({k: v for k, v in param.items() if not k.startswith("__")})
 
