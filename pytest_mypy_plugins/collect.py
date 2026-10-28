@@ -68,7 +68,7 @@ def parse_parametrized(params: list[Mapping[str, Any]]) -> list[Mapping[str, Any
         return [{}]
 
     parsed_params: list[Mapping[str, Any]] = []
-    known_params: set[str] | None = set(sorted(params[0].keys()))
+    known_params: set[str] = set(sorted(params[0].keys()))
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
         if known_params.intersection(param_keys) != known_params:
