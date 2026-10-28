@@ -25,6 +25,15 @@ _SEVERITY_MAP: Final = {
     "W": "warning",
 }
 
+# AssertStringArraysEqual displays special line alignment helper messages if
+# the first different line has at least this many characters,
+_MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
+
+_MIN_ALIGNMENT_STRING_LENGTH: Final = 4
+_MAX_ALIGNMENT_WIDTH: Final = 72
+_MAX_LINE_SPLIT_PARTS: Final = 3
+_ALIGNMENT_MARKER: Final = "^"
+_TRUNCATION_MARKER: Final = "..."
 
 @contextmanager
 def temp_environ() -> Iterator[None]:
@@ -64,11 +73,6 @@ def fname_to_module(fpath: Path, root_path: Path) -> str | None:
         return None
 
 
-# AssertStringArraysEqual displays special line alignment helper messages if
-# the first different line has at least this many characters,
-_MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
-
-
 @dataclass
 class OutputMatcher:
     fname: str
@@ -89,14 +93,12 @@ class OutputMatcher:
                 + self.message
             )
             return bool(regex.match(pattern, actual))
-        else:
-            return str(self) == actual
+        return str(self) == actual
 
     def __str__(self) -> str:
         if self.col is None:
             return f"{self.fname}:{self.lnum}: {self.severity}: {self.message}"
-        else:
-            return f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
+        return f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
 
     def __format__(self, format_spec: str) -> str:
         return format_spec.format(str(self))
@@ -131,55 +133,51 @@ def remove_common_prefix(lines: list[str]) -> list[str]:
     return cleaned_lines
 
 
-def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
-    """Align s1 and s2 so that the their first difference is highlighted.
+def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
+    """Align word1 and word2 so that the their first difference is highlighted.
 
-    For example, if s1 is 'foobar' and s2 is 'fobar', display the
+    For example, if word1 is 'foobar' and word2 is 'fobar', display the
     following lines:
 
       E: foobar
       A: fobar
            ^
 
-    If s1 and s2 are long, only display a fragment of the strings around the
-    first difference. If s1 is very short, do nothing.
+    If word1 and word2 are long, only display a fragment of the strings around the
+    first difference. If word1 is very short, do nothing.
     """
 
     # Seeing what went wrong is trivial even without alignment if the expected
     # string is very short. In this case do nothing to simplify output.
-    if len(s1) < 4:
+    if len(word1) < _MIN_ALIGNMENT_STRING_LENGTH:
         return error_message
-
-    maxw = 72  # Maximum number of characters shown
 
     error_message += "Alignment of first line difference:\n"
 
-    assert s1 != s2
+    assert word1 != word2
 
     trunc = False
-    while s1[:30] == s2[:30]:
-        s1 = s1[10:]
-        s2 = s2[10:]
+    while word1[:30] == word2[:30]:
+        word1 = word1[10:]
+        word2 = word2[10:]
         trunc = True
 
     if trunc:
-        s1 = "..." + s1
-        s2 = "..." + s2
+        word1= _TRUNCATION_MARKER + word1
+        word2 = _TRUNCATION_MARKER + word2
 
-    max_len = max(len(s1), len(s2))
-    extra = ""
-    if max_len > maxw:
-        extra = "..."
+    max_len = max(len(word1), len(word2))
+    extra = _TRUNCATION_MARKER if max_len > _MAX_ALIGNMENT_WIDTH else ""
 
     # Write a chunk of both lines, aligned.
-    error_message += f"  E: {s1[:maxw]}{extra}\n"
-    error_message += f"  A: {s2[:maxw]}{extra}\n"
+    error_message += f"  E: {word1[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
+    error_message += f"  A: {word2[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
-    for j in range(min(maxw, max(len(s1), len(s2)))):
-        if s1[j : j + 1] != s2[j : j + 1]:
-            error_message += "^"
+    for j in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
+        if word1[j : j + 1] != word2[j : j + 1]:
+            error_message += _ALIGNMENT_MARKER
             break
         else:
             error_message += " "
@@ -188,19 +186,15 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
 
 
 def remove_empty_lines(lines: list[str]) -> list[str]:
-    filtered_lines = []
-    for line in lines:
-        if line:
-            filtered_lines.append(line)
-    return filtered_lines
+    return list(filter(None, lines))
 
 
 def sorted_by_file_and_line(lines: list[str]) -> list[str]:
     def extract_parts_as_tuple(line: str) -> tuple[str, int]:
-        if len(line.split(":", maxsplit=2)) < 3:
+        if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
             return "", 0
 
-        fname, line_number, _ = line.split(":", maxsplit=2)
+        file_name, line_number, _ = line.split(":", maxsplit=2)
         try:
             return fname, int(line_number)
         except ValueError:
@@ -225,9 +219,7 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
         return "\n".join(lines) if lines else "  (empty)"
 
     expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
-    actual = sorted_by_file_and_line(remove_empty_lines(actual))
-
-    actual = remove_common_prefix(actual)
+    actual = remove_common_prefix(sorted_by_file_and_line(remove_empty_lines(actual)))
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {
         i: (e, a)
@@ -290,13 +282,13 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
         )
 
 
-def extract_output_matchers_from_comments(fname: str, input_lines: list[str], regex: bool) -> list[OutputMatcher]:
+def extract_output_matchers_from_comments(file_name: str, input_lines: list[str], regex: bool) -> list[OutputMatcher]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
     The result is a list pf output matchers
     """
-    fname = fname.removesuffix(".py")
+    file_name = file_name.removesuffix(".py")
     matchers = []
     for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
@@ -310,7 +302,7 @@ def extract_output_matchers_from_comments(fname: str, input_lines: list[str], re
                 col = match.group("col")
                 matchers.append(
                     OutputMatcher(
-                        fname,
+                        file_name,
                         index + 1,
                         severity,
                         message=match.group("message"),
