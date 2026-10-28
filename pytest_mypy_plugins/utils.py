@@ -328,19 +328,18 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     """
     matchers = []
     lines = render_template(out, params).split("\n")
+    severity_map = {
+        "E": "error",
+        "N": "note",
+        "W": "warning",
+    }
     for line in lines:
         match = re.search(
             r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
         )
         if match:
-            if match.group("severity") == "E":
-                severity = "error"
-            elif match.group("severity") == "N":
-                severity = "note"
-            elif match.group("severity") == "W":
-                severity = "warning"
-            else:
-                severity = match.group("severity")
+            raw_severity = match.group("severity")
+            severity = severity_map.get(match.group("severity"), raw_severity)
             col = match.group("col")
             matchers.append(
                 OutputMatcher(
