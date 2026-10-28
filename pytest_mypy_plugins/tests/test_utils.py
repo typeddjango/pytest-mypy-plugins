@@ -25,7 +25,7 @@ def test_render_template_with_None_value() -> None:
     data = {"a": None, "b": 99}
 
     # When
-    actual = utils.render_template(template=template, data=data)
+    actual = utils.render_template(template=template, parametrized_data=data)
 
     # Then
     assert actual == "None 99"

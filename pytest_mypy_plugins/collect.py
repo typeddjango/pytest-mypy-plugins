@@ -144,7 +144,7 @@ class YamlTestFile(pytest.File):
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
                 main_content = utils.render_template(
-                    template=raw_test["main"], data=params
+                    template=raw_test["main"], parametrized_data=params
                 )
                 main_file = File(path="main.py", content=main_content)
                 test_files = [main_file] + parse_test_files(
@@ -174,7 +174,8 @@ class YamlTestFile(pytest.File):
                     )
                 )
                 additional_mypy_config = utils.render_template(
-                    template=raw_test.get("mypy_config", ""), data=params
+                    template=raw_test.get("mypy_config", ""),
+                    parametrized_data=params,
                 )
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))

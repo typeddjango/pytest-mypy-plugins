@@ -37,6 +37,10 @@ _TRUNCATION_MARKER: Final = "..."
 _TRUNCATION_STEP: Final = 10
 _TRUNCATION_WINDOW: Final = 30
 
+_MYPY_OUTPUT_LINE_RE: Final = re.compile(
+    r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$"
+)
+
 
 @contextmanager
 def temp_environ() -> Iterator[None]:
@@ -357,7 +361,7 @@ def extract_output_matchers_from_out(
     lines = render_template(out, params).split("\n")
     for line in lines:
         match = re.search(
-            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$",
+            _MYPY_OUTPUT_LINE_RE,
             line.strip(),
         )
         if match:
@@ -381,8 +385,10 @@ def render_template(template: str, parametrized_data: Mapping[str, Any]) -> str:
     if _rendering_env.variable_start_string not in template:
         return template
 
-    template: jinja2.environment.Template = _rendering_env.from_string(template)
-    return template.render(
+    jinja_template: jinja2.environment.Template = _rendering_env.from_string(
+        template
+    )
+    return jinja_template.render(
         {
             key: value_param if value_param is not None else "None"
             for key, value_param in parametrized_data.items()
