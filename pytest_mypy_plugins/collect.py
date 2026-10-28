@@ -68,15 +68,13 @@ def parse_parametrized(params: list[Mapping[str, Any]]) -> list[Mapping[str, Any
         return [{}]
 
     parsed_params: list[Mapping[str, Any]] = []
-    known_params: set[str] | None = None
+    expected_keys: set[str] = set(sorted(params[0].keys()))
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
-        if not known_params:
-            known_params = param_keys
-        elif known_params.intersection(param_keys) != known_params:
+        if expected_keys.intersection(param_keys) != expected_keys:
             raise ValueError(
                 "All parametrized entries must have same keys."
-                f'First entry is {", ".join(known_params)} but {", ".join(param_keys)} '
+                f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
                 "was spotted at {idx} position",
             )
         parsed_params.append({k: v for k, v in param.items() if not k.startswith("__")})
