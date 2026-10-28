@@ -25,6 +25,7 @@ _SEVERITY_MAP: Final = {
     "W": "warning",
 }
 
+
 @contextmanager
 def temp_environ() -> Iterator[None]:
     """Allow the ability to set os.environ temporarily"""
