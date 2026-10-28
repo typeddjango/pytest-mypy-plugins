@@ -34,6 +34,8 @@ _MAX_ALIGNMENT_WIDTH: Final = 72
 _MAX_LINE_SPLIT_PARTS: Final = 3
 _ALIGNMENT_MARKER: Final = "^"
 _TRUNCATION_MARKER: Final = "..."
+_TRUNCATION_STEP: Final = 10
+_TRUNCATION_WINDOW: Final = 30
 
 
 @contextmanager
@@ -98,7 +100,9 @@ class OutputMatcher:
 
     def __str__(self) -> str:
         if self.col is None:
-            return f"{self.file_name}:{self.lnum}: {self.severity}: {self.message}"
+            return (
+                f"{self.file_name}:{self.lnum}: {self.severity}: {self.message}"
+            )
         return f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
 
     def __format__(self, format_spec: str) -> str:
@@ -109,7 +113,9 @@ class OutputMatcher:
 
 
 class TypecheckAssertionError(AssertionError):
-    def __init__(self, error_message: str | None = None, lineno: int = 0) -> None:
+    def __init__(
+        self, error_message: str | None = None, lineno: int = 0
+    ) -> None:
         self.error_message = error_message or ""
         self.lineno = lineno
 
@@ -158,9 +164,9 @@ def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
     assert word1 != word2
 
     trunc = False
-    while word1[:30] == word2[:30]:
-        word1 = word1[10:]
-        word2 = word2[10:]
+    while word1[:_TRUNCATION_WINDOW] == word2[:_TRUNCATION_WINDOW]:
+        word1 = word1[_TRUNCATION_STEP:]
+        word2 = word2[_TRUNCATION_STEP:]
         trunc = True
 
     if trunc:
@@ -176,8 +182,8 @@ def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
-    for j in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
-        if word1[j : j + 1] != word2[j : j + 1]:
+    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
+        if word1[pos : pos + 1] != word2[pos : pos + 1]:
             error_message += _ALIGNMENT_MARKER
             break
         else:
@@ -204,7 +210,9 @@ def sorted_by_file_and_line(lines: list[str]) -> list[str]:
     return sorted(lines, key=extract_parts_as_tuple)
 
 
-def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[str]) -> None:
+def assert_expected_matched_actual(
+    expected: list[OutputMatcher], actual: list[str]
+) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
@@ -220,7 +228,9 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
         return "\n".join(lines) if lines else "  (empty)"
 
     expected = sorted(expected, key=lambda om: (om.file_name, om.lnum))
-    actual = remove_common_prefix(sorted_by_file_and_line(remove_empty_lines(actual)))
+    actual = remove_common_prefix(
+        sorted_by_file_and_line(remove_empty_lines(actual))
+    )
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {
         i: (e, a)
@@ -239,43 +249,62 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
             if i in diff_lines:
                 expected_line, actual_line = diff_lines[i]
                 if expected_line:
-                    expected_message_lines.append(format_mismatched_line(str(expected_line)))
+                    expected_message_lines.append(
+                        format_mismatched_line(str(expected_line))
+                    )
                 if actual_line:
-                    actual_message_lines.append(format_mismatched_line(actual_line))
+                    actual_message_lines.append(
+                        format_mismatched_line(actual_line)
+                    )
 
             else:
                 expected_line, actual_line = expected[i], actual[i]
                 actual_message_lines.append(format_matched_line(actual_line))
-                expected_message_lines.append(format_matched_line(str(expected_line)))
+                expected_message_lines.append(
+                    format_matched_line(str(expected_line))
+                )
 
         first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
 
-        failure_reason = "Output is not expected" if actual and not expected else "Invalid output"
+        failure_reason = (
+            "Output is not expected"
+            if actual and not expected
+            else "Invalid output"
+        )
 
         if actual_message_lines and expected_message_lines:
             if first_diff_line > 0:
                 expected_message_lines.insert(0, "  ...")
                 actual_message_lines.insert(0, "  ...")
 
-            if last_diff_line < len(actual) - 1 and last_diff_line < len(expected) - 1:
+            if (
+                last_diff_line < len(actual) - 1
+                and last_diff_line < len(expected) - 1
+            ):
                 expected_message_lines.append("  ...")
                 actual_message_lines.append("  ...")
 
         error_message = "Actual:\n{}\nExpected:\n{}\n".format(
-            format_error_lines(actual_message_lines), format_error_lines(expected_message_lines)
+            format_error_lines(actual_message_lines),
+            format_error_lines(expected_message_lines),
         )
 
         if expected_line and expected_line.regex:
-            error_message += "The actual output does not match the expected regex."
+            error_message += (
+                "The actual output does not match the expected regex."
+            )
         elif (
             first_diff_actual is not None
             and first_diff_expected is not None
             and (
                 len(first_diff_actual) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
-                or len(str(first_diff_expected)) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
+                or len(str(first_diff_expected))
+                >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
             )
         ):
-            error_message = _add_aligned_message(str(first_diff_expected), first_diff_actual, error_message)
+            error_message = _add_aligned_message(
+                str(first_diff_expected), first_diff_actual, error_message
+            )
 
         raise TypecheckAssertionError(
             error_message=f"{failure_reason}: \n{error_message}",
@@ -283,7 +312,9 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
         )
 
 
-def extract_output_matchers_from_comments(file_name: str, input_lines: list[str], regex: bool) -> list[OutputMatcher]:
+def extract_output_matchers_from_comments(
+    file_name: str, input_lines: list[str], regex: bool
+) -> list[OutputMatcher]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
@@ -295,7 +326,8 @@ def extract_output_matchers_from_comments(file_name: str, input_lines: list[str]
         # The first in the split things isn't a comment
         for possible_err_comment in line.split(" # ")[1:]:
             match = re.search(
-                r"^([ENW])(?P<regex>[R])?:((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip()
+                r"^([ENW])(?P<regex>[R])?:((?P<col>\d+):)? (?P<message>.*)$",
+                possible_err_comment.strip(),
             )
             if match:
                 raw_severity = match.group(1)
@@ -314,7 +346,9 @@ def extract_output_matchers_from_comments(file_name: str, input_lines: list[str]
     return matchers
 
 
-def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> list[OutputMatcher]:
+def extract_output_matchers_from_out(
+    out: str, params: Mapping[str, Any], regex: bool
+) -> list[OutputMatcher]:
     """Transform output lines such as 'function:9: E: message'
 
     The result is a list of output matchers
@@ -323,7 +357,8 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     lines = render_template(out, params).split("\n")
     for line in lines:
         match = re.search(
-            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
+            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$",
+            line.strip(),
         )
         if match:
             raw_severity = match.group("severity")
@@ -342,15 +377,22 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     return matchers
 
 
-def render_template(template: str, data: Mapping[str, Any]) -> str:
+def render_template(template: str, parametrized_data: Mapping[str, Any]) -> str:
     if _rendering_env.variable_start_string not in template:
         return template
 
-    t: jinja2.environment.Template = _rendering_env.from_string(template)
-    return t.render({k: v if v is not None else "None" for k, v in data.items()})
+    template: jinja2.environment.Template = _rendering_env.from_string(template)
+    return template.render(
+        {
+            key: value_param if value_param is not None else "None"
+            for key, value_param in parametrized_data.items()
+        }
+    )
 
 
-def get_func_first_lnum(attr: Callable[..., None]) -> tuple[int, list[str]] | None:
+def get_func_first_lnum(
+    attr: Callable[..., None],
+) -> tuple[int, list[str]] | None:
     lines, _ = inspect.getsourcelines(attr)
     for lnum, line in enumerate(lines):
         no_space_line = line.strip()

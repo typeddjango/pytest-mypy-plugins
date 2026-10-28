@@ -156,7 +156,11 @@ def make_yaml_test_file(
 ) -> None:
     output_path = root_dir.joinpath(file_base_name).with_suffix(".yml")
     site_packages_path: Path | str = next(
-        (Path(p) for p in site.getsitepackages() if (Path(p) / "mypy").exists()),
+        (
+            Path(p)
+            for p in site.getsitepackages()
+            if (Path(p) / "mypy").exists()
+        ),
         Path(site.getsitepackages()[0]),
     )
     site_packages_path = os.path.relpath(site_packages_path, start=output_path)

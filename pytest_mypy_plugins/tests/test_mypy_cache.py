@@ -7,7 +7,11 @@ from sys import version_info
 from tempfile import TemporaryDirectory
 
 import pytest
-from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
+from mypy.metastore import (
+    FilesystemMetadataStore,
+    MetadataStore,
+    SqliteMetadataStore,
+)
 
 
 def test_non_test_case_files_remain(temp_dir: Path) -> None:
@@ -17,7 +21,9 @@ def test_non_test_case_files_remain(temp_dir: Path) -> None:
     Assumes that cache files will be generated for typeshed's ``builtins.pyi`` when running any test case.
     """
 
-    cache_dir = temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
+    cache_dir = (
+        temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
+    )
     # pytest and mypy hasn't been run yet, so no cache should exist
     assert not cache_dir.is_dir()
 
@@ -29,7 +35,10 @@ def test_non_test_case_files_remain(temp_dir: Path) -> None:
         """,
     )
     res = subprocess.run(
-        ["pytest", f"--mypy-testing-base={temp_dir}"], cwd=temp_dir, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+        ["pytest", f"--mypy-testing-base={temp_dir}"],
+        cwd=temp_dir,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
     )
 
     # pytest was invoked correctly and there are no failures unrelated to tests
@@ -61,7 +70,12 @@ CACHE_FILES_REMOVED_TEST_DATA = {
     - path: my_pkg/my_subpkg/__init__.py
     - path: my_pkg/my_subpkg/my_mod.py
         """,
-        ("my_pkg/__init__", "my_pkg/my_mod", "my_pkg/my_subpkg/__init__", "my_pkg/my_subpkg/my_mod"),
+        (
+            "my_pkg/__init__",
+            "my_pkg/my_mod",
+            "my_pkg/my_subpkg/__init__",
+            "my_pkg/my_subpkg/my_mod",
+        ),
     ),
     "namespace_package": (
         """
@@ -73,7 +87,12 @@ CACHE_FILES_REMOVED_TEST_DATA = {
     - path: my_nspkg/my_mod.py
     - path: my_nspkg/my_nssubpkg/my_mod.py
         """,
-        ("my_nspkg", "my_nspkg/my_mod", "my_nspkg/my_nssubpkg", "my_nspkg/my_nssubpkg/my_mod"),
+        (
+            "my_nspkg",
+            "my_nspkg/my_mod",
+            "my_nspkg/my_nssubpkg",
+            "my_nspkg/my_nssubpkg/my_mod",
+        ),
     ),
     "standard_stub_package": (
         """
@@ -87,7 +106,12 @@ CACHE_FILES_REMOVED_TEST_DATA = {
     - path: my_pkg-stubs/my_subpkg/__init__.pyi
     - path: my_pkg-stubs/my_subpkg/my_mod.pyi
         """,
-        ("my_pkg/__init__", "my_pkg/my_mod", "my_pkg/my_subpkg/__init__", "my_pkg/my_subpkg/my_mod"),
+        (
+            "my_pkg/__init__",
+            "my_pkg/my_mod",
+            "my_pkg/my_subpkg/__init__",
+            "my_pkg/my_subpkg/my_mod",
+        ),
     ),
     "namespace_stub_package": (
         """
@@ -99,7 +123,12 @@ CACHE_FILES_REMOVED_TEST_DATA = {
     - path: my_nspkg-stubs/my_mod.pyi
     - path: my_nspkg-stubs/my_nssubpkg/my_mod.pyi
         """,
-        ("my_nspkg", "my_nspkg/my_mod", "my_nspkg/my_nssubpkg", "my_nspkg/my_nssubpkg/my_mod"),
+        (
+            "my_nspkg",
+            "my_nspkg/my_mod",
+            "my_nspkg/my_nssubpkg",
+            "my_nspkg/my_nssubpkg/my_mod",
+        ),
     ),
     "mixed_modules_and_packages": (
         """
@@ -152,7 +181,9 @@ CACHE_FILES_REMOVED_TEST_DATA = {
         pytest.param("", id="default"),
         pytest.param("sqlite_cache = False\n", id="no-sqlite"),
         pytest.param("fixed_format_cache = False\n", id="no-fixed-format"),
-        pytest.param("sqlite_cache = False\nfixed_format_cache = False\n", id="legacy"),
+        pytest.param(
+            "sqlite_cache = False\nfixed_format_cache = False\n", id="legacy"
+        ),
     ],
 )
 @pytest.mark.parametrize(
@@ -161,22 +192,32 @@ CACHE_FILES_REMOVED_TEST_DATA = {
     ids=CACHE_FILES_REMOVED_TEST_DATA.keys(),
 )
 def test_cache_files_removed(
-    temp_dir: Path, contents: str, module_fpaths_no_suffix: tuple[str, ...], mypy_cache_config: str
+    temp_dir: Path,
+    contents: str,
+    module_fpaths_no_suffix: tuple[str, ...],
+    mypy_cache_config: str,
 ) -> None:
     """Tests that cache files associated with ``files`` in a test case get removed"""
 
-    cache_dir = temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
+    cache_dir = (
+        temp_dir / ".mypy_cache" / f"{version_info[0]}.{version_info[1]}"
+    )
     # pytest and mypy hasn't been run yet, so no cache should exist
     assert not cache_dir.is_dir()
 
     if mypy_cache_config:
         config_lines = mypy_cache_config.strip().splitlines()
         indented = "\n".join(f"    {line}" for line in config_lines)
-        contents = contents.replace("  main: |", f"  mypy_config: |\n{indented}\n  main: |")
+        contents = contents.replace(
+            "  main: |", f"  mypy_config: |\n{indented}\n  main: |"
+        )
 
     make_yaml_test_file(temp_dir, contents)
     res = subprocess.run(
-        ["pytest", f"--mypy-testing-base={temp_dir}"], cwd=temp_dir, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+        ["pytest", f"--mypy-testing-base={temp_dir}"],
+        cwd=temp_dir,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
     )
 
     # pytest was invoked correctly and there are no failures unrelated to tests
@@ -211,7 +252,9 @@ def make_yaml_test_file(
     return str(path)
 
 
-def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]) -> list[str]:
+def get_created_cache_files(
+    cache_dir: Path, module_rel_paths_no_suffix: tuple[str, ...]
+) -> list[str]:
     stores: list[MetadataStore] = []
     cache_dir_str = str(cache_dir)
     # mypy >= 2.0 shards the sqlite cache across `cache.{i}.db` files instead of one `cache.db` file
@@ -219,7 +262,9 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
     if shard_dbs:
         try:
             # `num_shards` was added in mypy 2.0.
-            stores.append(SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs)))
+            stores.append(
+                SqliteMetadataStore(cache_dir_str, num_shards=len(shard_dbs))
+            )
         except TypeError:
             stores.append(SqliteMetadataStore(cache_dir_str))
     elif (cache_dir / "cache.db").is_file():
@@ -231,7 +276,10 @@ def get_created_cache_files(cache_dir: Path, module_rel_paths_no_suffix: tuple[s
     for store in stores:
         try:
             for entry in store.list_all():
-                if any(os.path.normpath(entry).startswith(rel_path + ".") for rel_path in module_rel_paths_no_suffix):
+                if any(
+                    os.path.normpath(entry).startswith(rel_path + ".")
+                    for rel_path in module_rel_paths_no_suffix
+                ):
                     created.append(entry)
         finally:
             # See PR #188: mypy < 1.20 does not have MetadataStore.close

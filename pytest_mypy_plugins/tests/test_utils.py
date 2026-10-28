@@ -37,7 +37,10 @@ expect_matched_actual_data = [
             '''reveal_type(42)  # N: Revealed type is "Literal['foo']?"''',
             '''reveal_type("foo")  # N: Revealed type is "Literal[42]?"''',
         ],
-        ['''main:1: note: Revealed type is "Literal[42]?"''', '''main:2: note: Revealed type is "Literal['foo']?"'''],
+        [
+            '''main:1: note: Revealed type is "Literal[42]?"''',
+            '''main:2: note: Revealed type is "Literal['foo']?"''',
+        ],
         [
             """Invalid output: """,
             """Actual:""",
@@ -57,7 +60,10 @@ expect_matched_actual_data = [
             """reveal_type(42)""",
             '''reveal_type("foo")  # N: Revealed type is "Literal['foo']?"''',
         ],
-        ['''main:1: note: Revealed type is "Literal[42]?"''', '''main:2: note: Revealed type is "Literal['foo']?"'''],
+        [
+            '''main:1: note: Revealed type is "Literal[42]?"''',
+            '''main:2: note: Revealed type is "Literal['foo']?"''',
+        ],
         [
             """Invalid output: """,
             """Actual:""",
@@ -72,8 +78,14 @@ expect_matched_actual_data = [
         ],
     ),
     ExpectMatchedActualTestData(
-        ['''reveal_type(42)  # N: Revealed type is "Literal[42]?"''', """reveal_type("foo")"""],
-        ['''main:1: note: Revealed type is "Literal[42]?"''', '''main:2: note: Revealed type is "Literal['foo']?"'''],
+        [
+            '''reveal_type(42)  # N: Revealed type is "Literal[42]?"''',
+            """reveal_type("foo")""",
+        ],
+        [
+            '''main:1: note: Revealed type is "Literal[42]?"''',
+            '''main:2: note: Revealed type is "Literal['foo']?"''',
+        ],
         [
             """Invalid output: """,
             """Actual:""",
@@ -84,7 +96,9 @@ expect_matched_actual_data = [
     ),
     ExpectMatchedActualTestData(
         ['''42 + "foo"'''],
-        ["""main:1: error: Unsupported operand types for + ("int" and "str")"""],
+        [
+            """main:1: error: Unsupported operand types for + ("int" and "str")"""
+        ],
         [
             """Output is not expected: """,
             """Actual:""",
@@ -109,7 +123,10 @@ expect_matched_actual_data = [
             '''reveal_type(42)  # N: Revealed type is "Literal[42]?"''',
             '''reveal_type("foo")  # N: Revealed type is "builtins.int"''',
         ],
-        ['''main:1: note: Revealed type is "Literal[42]?"''', '''main:2: note: Revealed type is "Literal['foo']?"'''],
+        [
+            '''main:1: note: Revealed type is "Literal[42]?"''',
+            '''main:2: note: Revealed type is "Literal['foo']?"''',
+        ],
         [
             """Invalid output: """,
             """Actual:""",
@@ -129,7 +146,10 @@ expect_matched_actual_data = [
             '''reveal_type(42)  # N: Revealed type is "Literal[42]?"''',
             '''reveal_type("foo")  # N: Revealed type is "builtins.int"''',
         ],
-        ['''main:1: note: Revealed type is "Literal[42]?"''', '''main:2: note: Revealed type is "Literal['foo']?"'''],
+        [
+            '''main:1: note: Revealed type is "Literal[42]?"''',
+            '''main:2: note: Revealed type is "Literal['foo']?"''',
+        ],
         [
             """Invalid output: """,
             """Actual:""",
@@ -174,11 +194,18 @@ expect_matched_actual_data = [
 ]
 
 
-@pytest.mark.parametrize("source_lines,actual_lines,expected_message_lines", expect_matched_actual_data)
+@pytest.mark.parametrize(
+    "source_lines,actual_lines,expected_message_lines",
+    expect_matched_actual_data,
+)
 def test_assert_expected_matched_actual_failures(
-    source_lines: list[str], actual_lines: list[str], expected_message_lines: list[str]
+    source_lines: list[str],
+    actual_lines: list[str],
+    expected_message_lines: list[str],
 ) -> None:
-    expected: list[OutputMatcher] = extract_output_matchers_from_comments("main", source_lines, False)
+    expected: list[OutputMatcher] = extract_output_matchers_from_comments(
+        "main", source_lines, False
+    )
     expected_error_message = "\n".join(expected_message_lines)
 
     with pytest.raises(TypecheckAssertionError) as e:

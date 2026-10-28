@@ -27,9 +27,15 @@ setup(
     author_email="maxim.kurnikov@gmail.com",
     maintainer="Nikita Sobolev",
     maintainer_email="mail@sobolevn.me",
-    packages=["pytest_mypy_plugins", "pytest_mypy_plugins.tests", "pytest_mypy_plugins.tests.test_configs"],
+    packages=[
+        "pytest_mypy_plugins",
+        "pytest_mypy_plugins.tests",
+        "pytest_mypy_plugins.tests.test_configs",
+    ],
     # the following makes a plugin available to pytest
-    entry_points={"pytest11": ["pytest-mypy-plugins = pytest_mypy_plugins.collect"]},
+    entry_points={
+        "pytest11": ["pytest-mypy-plugins = pytest_mypy_plugins.collect"]
+    },
     install_requires=dependencies,
     python_requires=">=3.10",
     package_data={

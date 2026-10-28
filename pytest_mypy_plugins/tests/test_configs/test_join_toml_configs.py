@@ -54,7 +54,9 @@ def assert_file_contents() -> _AssertFileContents:
     ],
 )
 def test_join_existing_config(
-    execution_path: Path, assert_file_contents: _AssertFileContents, additional_config: str
+    execution_path: Path,
+    assert_file_contents: _AssertFileContents,
+    additional_config: str,
 ) -> None:
     filepath = join_toml_configs(_PYPROJECT1, additional_config, execution_path)
 
@@ -78,7 +80,9 @@ def test_join_existing_config(
     ],
 )
 def test_join_missing_config(
-    execution_path: Path, assert_file_contents: _AssertFileContents, additional_config: str
+    execution_path: Path,
+    assert_file_contents: _AssertFileContents,
+    additional_config: str,
 ) -> None:
     filepath = join_toml_configs(_PYPROJECT2, additional_config, execution_path)
 
@@ -93,7 +97,9 @@ def test_join_missing_config(
     )
 
 
-def test_join_missing_config1(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+def test_join_missing_config1(
+    execution_path: Path, assert_file_contents: _AssertFileContents
+) -> None:
     filepath = join_toml_configs(_PYPROJECT1, "", execution_path)
 
     assert_file_contents(
@@ -107,7 +113,9 @@ def test_join_missing_config1(execution_path: Path, assert_file_contents: _Asser
     )
 
 
-def test_join_missing_config2(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+def test_join_missing_config2(
+    execution_path: Path, assert_file_contents: _AssertFileContents
+) -> None:
     filepath = join_toml_configs(_PYPROJECT2, "", execution_path)
 
     assert_file_contents(
@@ -116,7 +124,9 @@ def test_join_missing_config2(execution_path: Path, assert_file_contents: _Asser
     )
 
 
-def test_join_missing_config3(execution_path: Path, assert_file_contents: _AssertFileContents) -> None:
+def test_join_missing_config3(
+    execution_path: Path, assert_file_contents: _AssertFileContents
+) -> None:
     filepath = join_toml_configs(_PYPROJECT3, "", execution_path)
 
     assert_file_contents(

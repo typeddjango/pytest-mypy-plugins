@@ -20,7 +20,11 @@ from _pytest.config import Config
 from mypy import build
 from mypy.fscache import FileSystemCache
 from mypy.main import process_options
-from mypy.metastore import FilesystemMetadataStore, MetadataStore, SqliteMetadataStore
+from mypy.metastore import (
+    FilesystemMetadataStore,
+    MetadataStore,
+    SqliteMetadataStore,
+)
 
 from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
@@ -36,7 +40,9 @@ if TYPE_CHECKING:
     # to assert what version you have using static conditions, so it has to be
     # manually re-defined here. Once minimum supported pytest version is >= 8.3.0,
     # the following can be replaced with `from _pytest._code.code import TracebackStyle`
-    TracebackStyle = Literal["long", "short", "line", "no", "native", "value", "auto"]
+    TracebackStyle = Literal[
+        "long", "short", "line", "no", "native", "value", "auto"
+    ]
 
 
 class TraceLastReprEntry(ReprEntry):
@@ -87,7 +93,9 @@ class ReturnCodes(IntEnum):
     FATAL_ERROR = 2
 
 
-def run_mypy_typechecking(cmd_options: list[str], stdout: TextIO, stderr: TextIO) -> int:
+def run_mypy_typechecking(
+    cmd_options: list[str], stdout: TextIO, stderr: TextIO
+) -> int:
     fscache = FileSystemCache()
     sources, options = process_options(cmd_options, fscache=fscache)
 
@@ -108,7 +116,14 @@ def run_mypy_typechecking(cmd_options: list[str], stdout: TextIO, stderr: TextIO
             sys.exit(ReturnCodes.FATAL_ERROR)
 
     try:
-        build.build(sources, options, flush_errors=flush_errors, fscache=fscache, stdout=stdout, stderr=stderr)
+        build.build(
+            sources,
+            options,
+            flush_errors=flush_errors,
+            fscache=fscache,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
     except SystemExit as sysexit:
         # The code to a SystemExit is optional
@@ -148,14 +163,18 @@ class MypyExecutor:
         self.environment_variables = environment_variables
         self.modify_pythonpath = modify_pythonpath
 
-    def execute(self, mypy_cmd_options: list[str]) -> tuple[int, tuple[str, str]]:
+    def execute(
+        self, mypy_cmd_options: list[str]
+    ) -> tuple[int, tuple[str, str]]:
         # Returns (returncode, (stdout, stderr))
         if self.same_process:
             return self._typecheck_in_same_process(mypy_cmd_options)
         else:
             return self._typecheck_in_new_subprocess(mypy_cmd_options)
 
-    def _typecheck_in_new_subprocess(self, mypy_cmd_options: list[Any]) -> tuple[int, tuple[str, str]]:
+    def _typecheck_in_new_subprocess(
+        self, mypy_cmd_options: list[Any]
+    ) -> tuple[int, tuple[str, str]]:
         if self.modify_pythonpath:
             # add current directory to path
             self._collect_python_path(self.rootdir)
@@ -177,7 +196,9 @@ class MypyExecutor:
         captured_stderr = completed.stderr.decode()
         return completed.returncode, (captured_stdout, captured_stderr)
 
-    def _typecheck_in_same_process(self, mypy_cmd_options: list[Any]) -> tuple[int, tuple[str, str]]:
+    def _typecheck_in_same_process(
+        self, mypy_cmd_options: list[Any]
+    ) -> tuple[int, tuple[str, str]]:
         return_code = -1
         with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
             # add custom environment variables
@@ -191,7 +212,9 @@ class MypyExecutor:
             stderr = io.StringIO()
 
             with stdout, stderr:
-                return_code = run_mypy_typechecking(mypy_cmd_options, stdout=stdout, stderr=stderr)
+                return_code = run_mypy_typechecking(
+                    mypy_cmd_options, stdout=stdout, stderr=stderr
+                )
                 stdout_value = stdout.getvalue()
                 stderr_value = stderr.getvalue()
 
@@ -228,7 +251,12 @@ class MypyExecutor:
 
 
 class OutputChecker:
-    def __init__(self, expect_fail: bool, execution_path: Path, expected_output: list[OutputMatcher]) -> None:
+    def __init__(
+        self,
+        expect_fail: bool,
+        execution_path: Path,
+        expected_output: list[OutputMatcher],
+    ) -> None:
         self.expect_fail = expect_fail
         self.execution_path = execution_path
         self.expected_output = expected_output
@@ -237,20 +265,28 @@ class OutputChecker:
         mypy_output = stdout + stderr
         if ret_code == ReturnCodes.FATAL_ERROR:
             print(mypy_output, file=sys.stderr)
-            raise TypecheckAssertionError(error_message="Critical error occurred")
+            raise TypecheckAssertionError(
+                error_message="Critical error occurred"
+            )
 
         output_lines = []
         for line in mypy_output.splitlines():
-            output_line = replace_fpath_with_module_name(line, rootdir=self.execution_path)
+            output_line = replace_fpath_with_module_name(
+                line, rootdir=self.execution_path
+            )
             output_lines.append(output_line)
         try:
-            assert_expected_matched_actual(expected=self.expected_output, actual=output_lines)
+            assert_expected_matched_actual(
+                expected=self.expected_output, actual=output_lines
+            )
         except TypecheckAssertionError as e:
             if not self.expect_fail:
                 raise e
         else:
             if self.expect_fail:
-                raise TypecheckAssertionError("Expected failure, but test passed")
+                raise TypecheckAssertionError(
+                    "Expected failure, but test passed"
+                )
 
 
 class Runner:
@@ -286,7 +322,9 @@ class Runner:
         for file in self.files:
             self._make_test_file(file)
 
-        returncode, (stdout, stderr) = self.mypy_executor.execute(mypy_cmd_options)
+        returncode, (stdout, stderr) = self.mypy_executor.execute(
+            mypy_cmd_options
+        )
         self.output_checker.check(returncode, stdout, stderr)
 
     def _make_test_file(self, file: File) -> None:
@@ -343,29 +381,44 @@ class YamlTestItem(pytest.Item):
         self.parsed_test_data = parsed_test_data
         self.same_process = self.config.option.mypy_same_process
         self.modify_pythonpath = self.config.option.mypy_modify_pythonpath
-        self.no_silence_site_packages = self.config.option.mypy_no_silence_site_packages
+        self.no_silence_site_packages = (
+            self.config.option.mypy_no_silence_site_packages
+        )
 
         # config parameters
         self.root_directory = self.config.option.mypy_testing_base
 
         # You cannot use both `.ini` and `pyproject.toml` files at the same time:
-        if self.config.option.mypy_ini_file and self.config.option.mypy_pyproject_toml_file:
-            raise ValueError("Cannot specify both `--mypy-ini-file` and `--mypy-pyproject-toml-file`")
+        if (
+            self.config.option.mypy_ini_file
+            and self.config.option.mypy_pyproject_toml_file
+        ):
+            raise ValueError(
+                "Cannot specify both `--mypy-ini-file` and `--mypy-pyproject-toml-file`"
+            )
 
         if self.config.option.mypy_ini_file:
-            self.base_ini_fpath = os.path.abspath(self.config.option.mypy_ini_file)
+            self.base_ini_fpath = os.path.abspath(
+                self.config.option.mypy_ini_file
+            )
         else:
             self.base_ini_fpath = None
         if self.config.option.mypy_pyproject_toml_file:
-            self.base_pyproject_toml_fpath = os.path.abspath(self.config.option.mypy_pyproject_toml_file)
+            self.base_pyproject_toml_fpath = os.path.abspath(
+                self.config.option.mypy_pyproject_toml_file
+            )
         else:
             self.base_pyproject_toml_fpath = None
-        self.incremental_cache_dir = os.path.join(self.root_directory, ".mypy_cache")
+        self.incremental_cache_dir = os.path.join(
+            self.root_directory, ".mypy_cache"
+        )
 
         # The mypy cache is not safe for concurrent use;
         # give each `pytest-xdist` worker its own cache directory.
         if xdist_worker := os.environ.get("PYTEST_XDIST_WORKER"):
-            self.incremental_cache_dir = os.path.join(self.incremental_cache_dir, xdist_worker)
+            self.incremental_cache_dir = os.path.join(
+                self.incremental_cache_dir, xdist_worker
+            )
 
     def remove_cache_files(self, fpath_no_suffix: Path) -> None:
         cache_dir = os.path.join(
@@ -394,7 +447,9 @@ class YamlTestItem(pytest.Item):
             if (
                 i == 0
                 and part.endswith("-stubs")
-                and os.path.isdir(os.path.join(cache_dir, part.removesuffix("-stubs")))
+                and os.path.isdir(
+                    os.path.join(cache_dir, part.removesuffix("-stubs"))
+                )
             ):
                 part = part.removesuffix("-stubs")
             accumulated = f"{accumulated}/{part}" if accumulated else part
@@ -408,7 +463,9 @@ class YamlTestItem(pytest.Item):
         if shard_dbs:
             try:
                 # `num_shards` was added in mypy 2.0.
-                stores.append(SqliteMetadataStore(cache_dir, num_shards=len(shard_dbs)))
+                stores.append(
+                    SqliteMetadataStore(cache_dir, num_shards=len(shard_dbs))
+                )
             except TypeError:
                 # For backward compatibility with `SqliteMetadataStore` with no `num_shards` arg.
                 stores.append(SqliteMetadataStore(cache_dir))
@@ -436,7 +493,9 @@ class YamlTestItem(pytest.Item):
 
     def runtest(self) -> None:
         try:
-            temp_dir = tempfile.TemporaryDirectory(prefix="pytest-mypy-", dir=self.root_directory)
+            temp_dir = tempfile.TemporaryDirectory(
+                prefix="pytest-mypy-", dir=self.root_directory
+            )
 
         except (FileNotFoundError, PermissionError, NotADirectoryError) as e:
             raise TypecheckAssertionError(
@@ -446,7 +505,9 @@ class YamlTestItem(pytest.Item):
         try:
             mypy_executable = shutil.which("mypy")
             assert mypy_executable is not None, "mypy executable is not found"
-            rootdir = getattr(getattr(self.parent, "config", None), "rootdir", None)
+            rootdir = getattr(
+                getattr(self.parent, "config", None), "rootdir", None
+            )
 
             # extension point for derived packages
             if (
@@ -467,7 +528,9 @@ class YamlTestItem(pytest.Item):
                 )
 
                 output_checker = OutputChecker(
-                    expect_fail=self.expect_fail, execution_path=execution_path, expected_output=self.expected_output
+                    expect_fail=self.expect_fail,
+                    execution_path=execution_path,
+                    expected_output=self.expected_output,
                 )
 
                 Runner(
@@ -497,17 +560,23 @@ class YamlTestItem(pytest.Item):
         # into one file and copy to the typechecking folder:
         if self.base_pyproject_toml_fpath:
             return configs.join_toml_configs(
-                self.base_pyproject_toml_fpath, self.additional_mypy_config, execution_path
+                self.base_pyproject_toml_fpath,
+                self.additional_mypy_config,
+                execution_path,
             )
         elif self.base_ini_fpath or self.additional_mypy_config:
             # We might have `self.base_ini_fpath` set as well.
             # Or this might be a legacy case: only `mypy_config:` is set in the `yaml` test case.
             # This means that no real file is provided.
-            return configs.join_ini_configs(self.base_ini_fpath, self.additional_mypy_config, execution_path)
+            return configs.join_ini_configs(
+                self.base_ini_fpath, self.additional_mypy_config, execution_path
+            )
         return None
 
     def repr_failure(
-        self, excinfo: ExceptionInfo[BaseException], style: TracebackStyle | None = None
+        self,
+        excinfo: ExceptionInfo[BaseException],
+        style: TracebackStyle | None = None,
     ) -> str | TerminalRepr:
         if excinfo.errisinstance(SystemExit):
             # We assume that before doing exit() (which raises SystemExit) we've printed
@@ -523,7 +592,11 @@ class YamlTestItem(pytest.Item):
                 path=self.fspath, lineno=self.starting_lineno + excinfo.value.lineno, message=""  # type: ignore
             )
             repr_tb_entry = ReprEntry(
-                exception_repr.reprtraceback.reprentries[-1].lines[1:], None, None, repr_file_location, "short"
+                exception_repr.reprtraceback.reprentries[-1].lines[1:],
+                None,
+                None,
+                repr_file_location,
+                "short",
             )
             exception_repr.reprtraceback.reprentries = [repr_tb_entry]
             return exception_repr
@@ -533,7 +606,9 @@ class YamlTestItem(pytest.Item):
     def reportinfo(self) -> tuple[Path | str, int | None, str]:
         return self.path, None, self.name
 
-    def _remove_if_exists(self, store: MetadataStore, entries: list[str]) -> None:
+    def _remove_if_exists(
+        self, store: MetadataStore, entries: list[str]
+    ) -> None:
         for entry in entries:
             try:
                 store.remove(entry)
