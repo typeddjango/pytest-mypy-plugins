@@ -6,10 +6,7 @@ import sys
 import tempfile
 from collections.abc import Hashable, Iterator, Mapping
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING, Any, Final
 
 import jsonschema
 import pytest
@@ -21,6 +18,8 @@ from pytest_mypy_plugins import utils
 
 if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
+
+_STORE_TRUE_ACTION: Final = "store_true"
 
 
 @dataclass
@@ -233,7 +232,7 @@ def pytest_addoption(parser: Parser) -> None:
     )
     group.addoption(
         "--mypy-same-process",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="Run in the same process. Useful for debugging, will create problems with import cache",
     )
     group.addoption(
@@ -244,16 +243,16 @@ def pytest_addoption(parser: Parser) -> None:
     )
     group.addoption(
         "--mypy-no-silence-site-packages",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="mypy will not silence errors from site-packages",
     )
     group.addoption(
         "--mypy-modify-pythonpath",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="When running mypy in a subprocess, modify `PYTHONPATH` to force packages to be treated as site-packages. Incompatible with `--mypy-same-process`",
     )
     group.addoption(
         "--mypy-closed-schema",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="Use closed schema to validate YAML test cases, which won't allow any extra keys (does not work well with `--mypy-extension-hook`)",
     )

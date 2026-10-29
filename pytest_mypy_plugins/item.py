@@ -10,7 +10,7 @@ import sys
 import tempfile
 from enum import IntEnum, unique
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, final
+from typing import TYPE_CHECKING, Any, Final, Literal, TextIO, final
 
 import pytest
 from _pytest._code import ExceptionInfo
@@ -44,6 +44,8 @@ if TYPE_CHECKING:
         "long", "short", "line", "no", "native", "value", "auto"
     ]
 
+_COLON: Final = ":"
+
 
 class TraceLastReprEntry(ReprEntry):
     def toterminal(self, tw: TerminalWriter) -> None:
@@ -54,7 +56,6 @@ class TraceLastReprEntry(ReprEntry):
         for line in self.lines:
             red = line.startswith("E   ")
             tw.line(line, bold=True, red=red)
-        return
 
 
 def make_files(rootdir: Path, files_to_create: dict[str, str]) -> list[str]:
@@ -71,11 +72,11 @@ def make_files(rootdir: Path, files_to_create: dict[str, str]) -> list[str]:
 
 
 def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
-    if ":" not in line:
+    if _COLON not in line:
         return line
-    out_fpath, res_line = line.split(":", 1)
-    line = os.path.relpath(out_fpath, start=rootdir) + ":" + res_line
-    return line.strip().replace(".py:", ":")
+    out_fpath, res_line = line.split(_COLON, 1)
+    line = os.path.relpath(out_fpath, start=rootdir) + _COLON + res_line
+    return line.strip().replace(".py:", _COLON)
 
 
 def maybe_to_abspath(rel_or_abs: str, rootdir: Path | None) -> str:
@@ -183,7 +184,8 @@ class MypyExecutor:
         self._collect_mypy_path(self.rootdir)
 
         # Windows requires this to be set, otherwise the interpreter crashes
-        if "SYSTEMROOT" in os.environ:
+        systemroot_in_env = os.environ.get("SYSTEMROOT")
+        if systemroot_in_env is not None:
             self.environment_variables["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
 
         completed = subprocess.run(
@@ -232,7 +234,9 @@ class MypyExecutor:
             python_path_parts.append(maybe_to_abspath(python_path_key, rootdir))
             python_path_parts.append(python_path_key)
 
-        self.environment_variables["PYTHONPATH"] = ":".join(python_path_parts)
+        self.environment_variables["PYTHONPATH"] = _COLON.join(
+            python_path_parts
+        )
 
     def _collect_mypy_path(self, rootdir: Path | None) -> None:
         mypy_path_parts = []
@@ -247,7 +251,7 @@ class MypyExecutor:
         if rootdir:
             mypy_path_parts.append(str(rootdir))
 
-        self.environment_variables["MYPYPATH"] = ":".join(mypy_path_parts)
+        self.environment_variables["MYPYPATH"] = _COLON.join(mypy_path_parts)
 
 
 class OutputChecker:
@@ -279,9 +283,9 @@ class OutputChecker:
             assert_expected_matched_actual(
                 expected=self.expected_output, actual=output_lines
             )
-        except TypecheckAssertionError as e:
+        except TypecheckAssertionError:
             if not self.expect_fail:
-                raise e
+                raise TypecheckAssertionError
         else:
             if self.expect_fail:
                 raise TypecheckAssertionError(
@@ -319,19 +323,19 @@ class Runner:
         mypy_cmd_options.append(str(self.main_file))
 
         # make files
-        for file in self.files:
-            self._make_test_file(file)
+        for test_file in self.files:
+            self._make_test_file(test_file)
 
         returncode, (stdout, stderr) = self.mypy_executor.execute(
             mypy_cmd_options
         )
         self.output_checker.check(returncode, stdout, stderr)
 
-    def _make_test_file(self, file: File) -> None:
+    def _make_test_file(self, test_file: File) -> None:
         current_directory = Path.cwd()
-        fpath = current_directory / file.path
+        fpath = current_directory / test_file.path
         fpath.parent.mkdir(parents=True, exist_ok=True)
-        fpath.write_text(file.content)
+        fpath.write_text(test_file.content)
 
     def _prepare_mypy_cmd_options(self) -> list[str]:
         mypy_cmd_options = [
@@ -548,8 +552,8 @@ class YamlTestItem(pytest.Item):
             temp_dir.cleanup()
             # remove created modules from the shared cache
             if not self.disable_cache:
-                for file in self.files:
-                    path = Path(file.path)
+                for test_file in self.files:
+                    path = Path(test_file.path)
                     self.remove_cache_files(path.with_suffix(""))
 
         assert not os.path.exists(temp_dir.name)

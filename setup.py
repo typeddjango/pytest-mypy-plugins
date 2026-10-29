@@ -12,6 +12,7 @@ dependencies = [
     "pytest>=7.0.0",
     "pyyaml",
     "regex",
+    # TODO: should we use tomli?
     "tomlkit>=0.11",
 ]
 
