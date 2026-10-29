@@ -1,7 +1,7 @@
 from setuptools import setup
 
-with open("README.md") as f:
-    readme = f.read()
+with open("README.md") as readme_file:
+    readme = readme_file.read()
 
 dependencies = [
     "Jinja2",

@@ -17,6 +17,8 @@ import jinja2
 import regex
 from decorator import contextmanager
 
+from pytest_mypy_plugins.logic import text
+
 _rendering_env = jinja2.Environment()
 
 _SEVERITY_MAP: Final = {
@@ -196,10 +198,6 @@ def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
     return error_message
 
 
-def remove_empty_lines(lines: list[str]) -> list[str]:
-    return list(filter(None, lines))
-
-
 def sorted_by_file_and_line(lines: list[str]) -> list[str]:
     def extract_parts_as_tuple(line: str) -> tuple[str, int]:
         if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
@@ -222,18 +220,9 @@ def assert_expected_matched_actual(
     Display any differences in a human-readable form.
     """
 
-    def format_mismatched_line(line: str) -> str:
-        return f"  {str(line):<45} (diff)"
-
-    def format_matched_line(line: str, width: int = 100) -> str:
-        return f" {line[:width]}..." if len(line) > width else f" {line}"
-
-    def format_error_lines(lines: list[str]) -> str:
-        return "\n".join(lines) if lines else "  (empty)"
-
     expected = sorted(expected, key=lambda om: (om.file_name, om.lnum))
     actual = remove_common_prefix(
-        sorted_by_file_and_line(remove_empty_lines(actual))
+        sorted_by_file_and_line(text.remove_empty_lines(actual))
     )
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {
@@ -254,18 +243,20 @@ def assert_expected_matched_actual(
                 expected_line, actual_line = diff_lines[i]
                 if expected_line:
                     expected_message_lines.append(
-                        format_mismatched_line(str(expected_line))
+                        text.format_mismatched_line(str(expected_line))
                     )
                 if actual_line:
                     actual_message_lines.append(
-                        format_mismatched_line(actual_line)
+                        text.format_mismatched_line(actual_line)
                     )
 
             else:
                 expected_line, actual_line = expected[i], actual[i]
-                actual_message_lines.append(format_matched_line(actual_line))
+                actual_message_lines.append(
+                    text.format_matched_line(actual_line)
+                )
                 expected_message_lines.append(
-                    format_matched_line(str(expected_line))
+                    text.format_matched_line(str(expected_line))
                 )
 
         first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
@@ -289,8 +280,8 @@ def assert_expected_matched_actual(
                 actual_message_lines.append("  ...")
 
         error_message = "Actual:\n{}\nExpected:\n{}\n".format(
-            format_error_lines(actual_message_lines),
-            format_error_lines(expected_message_lines),
+            text.format_error_lines(actual_message_lines),
+            text.format_error_lines(expected_message_lines),
         )
 
         if expected_line and expected_line.regex:

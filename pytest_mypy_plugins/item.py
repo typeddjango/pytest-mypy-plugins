@@ -10,7 +10,7 @@ import sys
 import tempfile
 from enum import IntEnum, unique
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final, Literal, TextIO, final
+from typing import TYPE_CHECKING, Any, Literal, TextIO, final
 
 import pytest
 from _pytest._code import ExceptionInfo
@@ -28,6 +28,8 @@ from mypy.metastore import (
 
 from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import File, YamlTestFile
+from pytest_mypy_plugins.constants import COLON
+from pytest_mypy_plugins.logic import files
 from pytest_mypy_plugins.utils import (
     OutputMatcher,
     TypecheckAssertionError,
@@ -43,8 +45,6 @@ if TYPE_CHECKING:
     TracebackStyle = Literal[
         "long", "short", "line", "no", "native", "value", "auto"
     ]
-
-_COLON: Final = ":"
 
 
 class TraceLastReprEntry(ReprEntry):
@@ -69,21 +69,6 @@ def make_files(rootdir: Path, files_to_create: dict[str, str]) -> list[str]:
         if created_module:
             created_modules.append(created_module)
     return created_modules
-
-
-def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
-    if _COLON not in line:
-        return line
-    out_fpath, res_line = line.split(_COLON, 1)
-    line = os.path.relpath(out_fpath, start=rootdir) + _COLON + res_line
-    return line.strip().replace(".py:", _COLON)
-
-
-def maybe_to_abspath(rel_or_abs: str, rootdir: Path | None) -> str:
-    rel_or_abs = os.path.expandvars(rel_or_abs)
-    if rootdir is None or os.path.isabs(rel_or_abs):
-        return rel_or_abs
-    return str(rootdir / rel_or_abs)
 
 
 @final
@@ -231,12 +216,12 @@ class MypyExecutor:
         python_path_parts.append(str(self.execution_path))
         python_path_key = self.environment_variables.get("PYTHONPATH")
         if python_path_key:
-            python_path_parts.append(maybe_to_abspath(python_path_key, rootdir))
+            python_path_parts.append(
+                files.maybe_to_abspath(python_path_key, rootdir)
+            )
             python_path_parts.append(python_path_key)
 
-        self.environment_variables["PYTHONPATH"] = _COLON.join(
-            python_path_parts
-        )
+        self.environment_variables["PYTHONPATH"] = COLON.join(python_path_parts)
 
     def _collect_mypy_path(self, rootdir: Path | None) -> None:
         mypy_path_parts = []
@@ -246,12 +231,14 @@ class MypyExecutor:
             mypy_path_parts.append(existing_mypy_path)
         mypy_path_key = self.environment_variables.get("MYPYPATH")
         if mypy_path_key:
-            mypy_path_parts.append(maybe_to_abspath(mypy_path_key, rootdir))
+            mypy_path_parts.append(
+                files.maybe_to_abspath(mypy_path_key, rootdir)
+            )
             mypy_path_parts.append(mypy_path_key)
         if rootdir:
             mypy_path_parts.append(str(rootdir))
 
-        self.environment_variables["MYPYPATH"] = _COLON.join(mypy_path_parts)
+        self.environment_variables["MYPYPATH"] = COLON.join(mypy_path_parts)
 
 
 class OutputChecker:
@@ -275,7 +262,7 @@ class OutputChecker:
 
         output_lines = []
         for line in mypy_output.splitlines():
-            output_line = replace_fpath_with_module_name(
+            output_line = files.replace_fpath_with_module_name(
                 line, rootdir=self.execution_path
             )
             output_lines.append(output_line)
@@ -285,7 +272,7 @@ class OutputChecker:
             )
         except TypecheckAssertionError:
             if not self.expect_fail:
-                raise TypecheckAssertionError
+                raise
         else:
             if self.expect_fail:
                 raise TypecheckAssertionError(

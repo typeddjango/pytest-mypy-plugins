@@ -15,6 +15,7 @@ from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
 
 from pytest_mypy_plugins import utils
+from pytest_mypy_plugins.logic import files
 
 if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
@@ -54,14 +55,6 @@ def parse_test_files(test_files: list[dict[str, Any]]) -> list[File]:
         file = File(path=path, content=test_file.get("content", ""))
         files.append(file)
     return files
-
-
-def parse_environment_variables(env_vars: list[str]) -> dict[str, str]:
-    parsed_vars: dict[str, str] = {}
-    for env_var in env_vars:
-        name, _, value = env_var.partition("=")
-        parsed_vars[name] = value
-    return parsed_vars
 
 
 def parse_parametrized(
@@ -163,7 +156,7 @@ class YamlTestFile(pytest.File):
 
                 starting_lineno = raw_test["__line__"]
                 marks = raw_test.get("marks", [])
-                extra_environment_variables = parse_environment_variables(
+                extra_environment_variables = files.parse_environment_variables(
                     raw_test.get("env", [])
                 )
                 disable_cache = raw_test.get("disable_cache", False)
