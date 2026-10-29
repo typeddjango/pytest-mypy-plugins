@@ -4,8 +4,7 @@ import pathlib
 import platform
 import sys
 import tempfile
-from collections.abc import Hashable, Iterator, Mapping
-from dataclasses import dataclass
+from collections.abc import Hashable, Iterator
 from typing import TYPE_CHECKING, Any, Final
 
 import jsonschema
@@ -15,18 +14,13 @@ from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
 
 from pytest_mypy_plugins import utils
-from pytest_mypy_plugins.logic import files
+from pytest_mypy_plugins.logic import files, parser
+from pytest_mypy_plugins.types import File
 
 if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
 _STORE_TRUE_ACTION: Final = "store_true"
-
-
-@dataclass
-class File:
-    path: str
-    content: str
 
 
 def validate_schema(data: Any, *, is_closed: bool = False) -> None:
@@ -46,38 +40,6 @@ def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     schema["items"]["additionalProperties"] = not is_closed
 
     jsonschema.validate(instance=data, schema=schema)
-
-
-def parse_test_files(test_files: list[dict[str, Any]]) -> list[File]:
-    files: list[File] = []
-    for test_file in test_files:
-        path = test_file.get("path", "main.py")
-        file = File(path=path, content=test_file.get("content", ""))
-        files.append(file)
-    return files
-
-
-def parse_parametrized(
-    params: list[Mapping[str, Any]],
-) -> list[Mapping[str, Any]]:
-    if not params:
-        return [{}]
-
-    parsed_params: list[Mapping[str, Any]] = []
-    expected_keys: set[str] = set(sorted(params[0].keys()))
-    for idx, param in enumerate(params):
-        param_keys = set(sorted(param.keys()))
-        if expected_keys.intersection(param_keys) != expected_keys:
-            raise ValueError(
-                "All parametrized entries must have same keys."
-                f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
-                f"was spotted at {idx} position",
-            )
-        parsed_params.append(
-            {k: v for k, v in param.items() if not k.startswith("__")}
-        )
-
-    return parsed_params
 
 
 class SafeLineLoader(yaml.SafeLoader):
@@ -121,7 +83,7 @@ class YamlTestFile(pytest.File):
                     f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed."
                 )
             else:
-                parametrized = parse_parametrized(
+                parametrized = parser.parse_parametrized(
                     raw_test.get("parametrized", [])
                 )
 
@@ -139,7 +101,7 @@ class YamlTestFile(pytest.File):
                     template=raw_test["main"], parametrized_data=params
                 )
                 main_file = File(path="main.py", content=main_content)
-                test_files = [main_file] + parse_test_files(
+                test_files = [main_file] + parser.parse_test_files(
                     raw_test.get("files", [])
                 )
                 expect_fail = raw_test.get("expect_fail", False)
