@@ -4,12 +4,8 @@ import pathlib
 import platform
 import sys
 import tempfile
-from collections.abc import Hashable, Iterator, Mapping
-from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from collections.abc import Hashable, Iterator
+from typing import TYPE_CHECKING, Any, Final
 
 import jsonschema
 import pytest
@@ -18,15 +14,13 @@ from _pytest.config.argparsing import Parser
 from _pytest.nodes import Node
 
 from pytest_mypy_plugins import utils
+from pytest_mypy_plugins.logic import files, parser
+from pytest_mypy_plugins.types import File
 
 if TYPE_CHECKING:
     from pytest_mypy_plugins.item import YamlTestItem
 
-
-@dataclass
-class File:
-    path: str
-    content: str
+_STORE_TRUE_ACTION: Final = "store_true"
 
 
 def validate_schema(data: Any, *, is_closed: bool = False) -> None:
@@ -36,7 +30,9 @@ def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     if not isinstance(data, list):
         raise TypeError(f"Test file has to be YAML list, got {type(data)!r}.")
 
-    schema = json.loads((pathlib.Path(__file__).parent / "schema.json").read_text("utf8"))
+    schema = json.loads(
+        (pathlib.Path(__file__).parent / "schema.json").read_text("utf8")
+    )
     schema["items"]["properties"]["__line__"] = {
         "type": "integer",
         "description": "Line number where the test starts (`pytest-mypy-plugins` internal)",
@@ -46,44 +42,10 @@ def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     jsonschema.validate(instance=data, schema=schema)
 
 
-def parse_test_files(test_files: list[dict[str, Any]]) -> list[File]:
-    files: list[File] = []
-    for test_file in test_files:
-        path = test_file.get("path", "main.py")
-        file = File(path=path, content=test_file.get("content", ""))
-        files.append(file)
-    return files
-
-
-def parse_environment_variables(env_vars: list[str]) -> dict[str, str]:
-    parsed_vars: dict[str, str] = {}
-    for env_var in env_vars:
-        name, _, value = env_var.partition("=")
-        parsed_vars[name] = value
-    return parsed_vars
-
-
-def parse_parametrized(params: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
-    if not params:
-        return [{}]
-
-    parsed_params: list[Mapping[str, Any]] = []
-    expected_keys: set[str] = set(sorted(params[0].keys()))
-    for idx, param in enumerate(params):
-        param_keys = set(sorted(param.keys()))
-        if expected_keys.intersection(param_keys) != expected_keys:
-            raise ValueError(
-                "All parametrized entries must have same keys."
-                f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
-                "was spotted at {idx} position",
-            )
-        parsed_params.append({k: v for k, v in param.items() if not k.startswith("__")})
-
-    return parsed_params
-
-
 class SafeLineLoader(yaml.SafeLoader):
-    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
+    def construct_mapping(
+        self, node: yaml.MappingNode, deep: bool = False
+    ) -> dict[Hashable, Any]:
         mapping = super().construct_mapping(node, deep=deep)
         # Add 1 so line numbering starts at 1
         starting_line = node.start_mark.line + 1
@@ -99,51 +61,76 @@ class YamlTestFile(pytest.File):
     def collect(self) -> Iterator["YamlTestItem"]:
         from pytest_mypy_plugins.item import YamlTestItem
 
-        parsed_file = yaml.load(stream=self.path.read_text("utf8"), Loader=SafeLineLoader)
+        parsed_file = yaml.load(
+            stream=self.path.read_text("utf8"), Loader=SafeLineLoader
+        )
         if parsed_file is None:
             return
 
-        validate_schema(parsed_file, is_closed=self.config.option.mypy_closed_schema)
+        validate_schema(
+            parsed_file, is_closed=self.config.option.mypy_closed_schema
+        )
 
         if not isinstance(parsed_file, list):
-            raise ValueError(f"Test file has to be YAML list, got {type(parsed_file)!r}.")
+            raise ValueError(
+                f"Test file has to be YAML list, got {type(parsed_file)!r}."
+            )
 
         for raw_test in parsed_file:
             test_name_prefix = raw_test["case"]
             if " " in test_name_prefix:
-                raise ValueError(f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed.")
+                raise ValueError(
+                    f"Invalid test name {test_name_prefix!r}, only '[a-zA-Z0-9_]' is allowed."
+                )
             else:
-                parametrized = parse_parametrized(raw_test.get("parametrized", []))
+                parametrized = parser.parse_parametrized(
+                    raw_test.get("parametrized", [])
+                )
 
             for params in parametrized:
                 if params:
-                    test_name_suffix = ",".join(f"{k}={v}" for k, v in params.items())
+                    test_name_suffix = ",".join(
+                        f"{k}={v}" for k, v in params.items()
+                    )
                     test_name_suffix = f"[{test_name_suffix}]"
                 else:
                     test_name_suffix = ""
 
                 test_name = f"{test_name_prefix}{test_name_suffix}"
-                main_content = utils.render_template(template=raw_test["main"], data=params)
+                main_content = utils.render_template(
+                    template=raw_test["main"], parametrized_data=params
+                )
                 main_file = File(path="main.py", content=main_content)
-                test_files = [main_file] + parse_test_files(raw_test.get("files", []))
+                test_files = [main_file] + parser.parse_test_files(
+                    raw_test.get("files", [])
+                )
                 expect_fail = raw_test.get("expect_fail", False)
                 regex = raw_test.get("regex", False)
 
                 expected_output = []
                 for test_file in test_files:
                     output_lines = utils.extract_output_matchers_from_comments(
-                        test_file.path, test_file.content.split("\n"), regex=regex
+                        test_file.path,
+                        test_file.content.split("\n"),
+                        regex=regex,
                     )
                     expected_output.extend(output_lines)
 
                 starting_lineno = raw_test["__line__"]
                 marks = raw_test.get("marks", [])
-                extra_environment_variables = parse_environment_variables(raw_test.get("env", []))
+                extra_environment_variables = files.parse_environment_variables(
+                    raw_test.get("env", [])
+                )
                 disable_cache = raw_test.get("disable_cache", False)
                 expected_output.extend(
-                    utils.extract_output_matchers_from_out(raw_test.get("out", ""), params, regex=regex)
+                    utils.extract_output_matchers_from_out(
+                        raw_test.get("out", ""), params, regex=regex
+                    )
                 )
-                additional_mypy_config = utils.render_template(template=raw_test.get("mypy_config", ""), data=params)
+                additional_mypy_config = utils.render_template(
+                    template=raw_test.get("mypy_config", ""),
+                    parametrized_data=params,
+                )
 
                 skip = self._eval_skip(str(raw_test.get("skip", "False")))
                 if not skip:
@@ -162,11 +149,20 @@ class YamlTestFile(pytest.File):
                     )
 
     def _eval_skip(self, skip_if: str) -> bool:
-        return bool(eval(skip_if, {"sys": sys, "os": os, "pytest": pytest, "platform": platform}))
+        return bool(
+            eval(
+                skip_if,
+                {"sys": sys, "os": os, "pytest": pytest, "platform": platform},
+            )
+        )
 
 
-def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> YamlTestFile | None:
-    if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(("test-", "test_")):
+def pytest_collect_file(
+    file_path: pathlib.Path, parent: Node
+) -> YamlTestFile | None:
+    if file_path.suffix in {".yaml", ".yml"} and file_path.name.startswith(
+        ("test-", "test_")
+    ):
         return YamlTestFile.from_parent(parent, path=file_path)
     return None
 
@@ -174,7 +170,10 @@ def pytest_collect_file(file_path: pathlib.Path, parent: Node) -> YamlTestFile |
 def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("mypy-tests")
     group.addoption(
-        "--mypy-testing-base", type=str, default=tempfile.gettempdir(), help="Base directory for tests to use"
+        "--mypy-testing-base",
+        type=str,
+        default=tempfile.gettempdir(),
+        help="Base directory for tests to use",
     )
     group.addoption(
         "--mypy-pyproject-toml-file",
@@ -188,7 +187,7 @@ def pytest_addoption(parser: Parser) -> None:
     )
     group.addoption(
         "--mypy-same-process",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="Run in the same process. Useful for debugging, will create problems with import cache",
     )
     group.addoption(
@@ -199,16 +198,16 @@ def pytest_addoption(parser: Parser) -> None:
     )
     group.addoption(
         "--mypy-no-silence-site-packages",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="mypy will not silence errors from site-packages",
     )
     group.addoption(
         "--mypy-modify-pythonpath",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="When running mypy in a subprocess, modify `PYTHONPATH` to force packages to be treated as site-packages. Incompatible with `--mypy-same-process`",
     )
     group.addoption(
         "--mypy-closed-schema",
-        action="store_true",
+        action=_STORE_TRUE_ACTION,
         help="Use closed schema to validate YAML test cases, which won't allow any extra keys (does not work well with `--mypy-extension-hook`)",
     )

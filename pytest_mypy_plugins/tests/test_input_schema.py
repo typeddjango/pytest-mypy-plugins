@@ -32,13 +32,17 @@ def test_mypy_config_is_not_an_object() -> None:
                 {
                     "case": "mypy_config_is_not_an_object",
                     "main": "False",
-                    "mypy_config": [{"force_uppercase_builtins": True}, {"force_union_syntax": True}],
+                    "mypy_config": [
+                        {"force_uppercase_builtins": True},
+                        {"force_union_syntax": True},
+                    ],
                 }
             ]
         )
 
     assert (
-        ex.value.message == "[{'force_uppercase_builtins': True}, {'force_union_syntax': True}] is not of type 'string'"
+        ex.value.message
+        == "[{'force_uppercase_builtins': True}, {'force_union_syntax': True}] is not of type 'string'"
     )
 
 
@@ -68,4 +72,7 @@ def test_closed_schema() -> None:
             is_closed=True,
         )
 
-    assert ex.value.message == "Additional properties are not allowed ('extra_field' was unexpected)"
+    assert (
+        ex.value.message
+        == "Additional properties are not allowed ('extra_field' was unexpected)"
+    )

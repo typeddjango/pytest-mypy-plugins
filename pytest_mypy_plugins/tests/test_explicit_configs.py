@@ -4,8 +4,12 @@ from typing import Final
 
 import pytest
 
-_PYPROJECT1: Final = str(Path(__file__).parent / "test_configs" / "pyproject1.toml")
-_PYPROJECT2: Final = str(Path(__file__).parent / "test_configs" / "pyproject2.toml")
+_PYPROJECT1: Final = str(
+    Path(__file__).parent / "test_configs" / "pyproject1.toml"
+)
+_PYPROJECT2: Final = str(
+    Path(__file__).parent / "test_configs" / "pyproject2.toml"
+)
 _MYPYINI1: Final = str(Path(__file__).parent / "test_configs" / "mypy1.ini")
 _MYPYINI2: Final = str(Path(__file__).parent / "test_configs" / "mypy2.ini")
 _SETUPCFG1: Final = str(Path(__file__).parent / "test_configs" / "setup1.cfg")

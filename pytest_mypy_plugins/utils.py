@@ -17,6 +17,8 @@ import jinja2
 import regex
 from decorator import contextmanager
 
+from pytest_mypy_plugins.logic import text
+
 _rendering_env = jinja2.Environment()
 
 _SEVERITY_MAP: Final = {
@@ -24,6 +26,22 @@ _SEVERITY_MAP: Final = {
     "N": "note",
     "W": "warning",
 }
+
+# AssertStringArraysEqual displays special line alignment helper messages if
+# the first different line has at least this many characters,
+_MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
+
+_MIN_ALIGNMENT_STRING_LENGTH: Final = 4
+_MAX_ALIGNMENT_WIDTH: Final = 72
+_MAX_LINE_SPLIT_PARTS: Final = 3
+_ALIGNMENT_MARKER: Final = "^"
+_TRUNCATION_MARKER: Final = "..."
+_TRUNCATION_STEP: Final = 10
+_TRUNCATION_WINDOW: Final = 30
+
+_MYPY_OUTPUT_LINE_RE: Final = re.compile(
+    r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$"
+)
 
 
 @contextmanager
@@ -56,22 +74,9 @@ def temp_sys_modules() -> Iterator[None]:
         sys.modules = sys_modules.copy()
 
 
-def fname_to_module(fpath: Path, root_path: Path) -> str | None:
-    try:
-        relpath = fpath.relative_to(root_path).with_suffix("")
-        return str(relpath).replace(os.sep, ".")
-    except ValueError:
-        return None
-
-
-# AssertStringArraysEqual displays special line alignment helper messages if
-# the first different line has at least this many characters,
-_MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
-
-
 @dataclass
 class OutputMatcher:
-    fname: str
+    file_name: str
     lnum: int
     severity: str
     message: str
@@ -82,21 +87,21 @@ class OutputMatcher:
         if self.regex:
             pattern = (
                 regex.escape(
-                    f"{self.fname}:{self.lnum}: {self.severity}: "
+                    f"{self.file_name}:{self.lnum}: {self.severity}: "
                     if self.col is None
-                    else f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: "
+                    else f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: "
                 )
                 + self.message
             )
             return bool(regex.match(pattern, actual))
-        else:
-            return str(self) == actual
+        return str(self) == actual
 
     def __str__(self) -> str:
         if self.col is None:
-            return f"{self.fname}:{self.lnum}: {self.severity}: {self.message}"
-        else:
-            return f"{self.fname}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
+            return (
+                f"{self.file_name}:{self.lnum}: {self.severity}: {self.message}"
+            )
+        return f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
 
     def __format__(self, format_spec: str) -> str:
         return format_spec.format(str(self))
@@ -106,7 +111,9 @@ class OutputMatcher:
 
 
 class TypecheckAssertionError(AssertionError):
-    def __init__(self, error_message: str | None = None, lineno: int = 0) -> None:
+    def __init__(
+        self, error_message: str | None = None, lineno: int = 0
+    ) -> None:
         self.error_message = error_message or ""
         self.lineno = lineno
 
@@ -131,55 +138,51 @@ def remove_common_prefix(lines: list[str]) -> list[str]:
     return cleaned_lines
 
 
-def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
-    """Align s1 and s2 so that the their first difference is highlighted.
+def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
+    """Align word1 and word2 so that the their first difference is highlighted.
 
-    For example, if s1 is 'foobar' and s2 is 'fobar', display the
+    For example, if word1 is 'foobar' and word2 is 'fobar', display the
     following lines:
 
       E: foobar
       A: fobar
            ^
 
-    If s1 and s2 are long, only display a fragment of the strings around the
-    first difference. If s1 is very short, do nothing.
+    If word1 and word2 are long, only display a fragment of the strings around the
+    first difference. If word1 is very short, do nothing.
     """
 
     # Seeing what went wrong is trivial even without alignment if the expected
     # string is very short. In this case do nothing to simplify output.
-    if len(s1) < 4:
+    if len(word1) < _MIN_ALIGNMENT_STRING_LENGTH:
         return error_message
-
-    maxw = 72  # Maximum number of characters shown
 
     error_message += "Alignment of first line difference:\n"
 
-    assert s1 != s2
+    assert word1 != word2
 
     trunc = False
-    while s1[:30] == s2[:30]:
-        s1 = s1[10:]
-        s2 = s2[10:]
+    while word1[:_TRUNCATION_WINDOW] == word2[:_TRUNCATION_WINDOW]:
+        word1 = word1[_TRUNCATION_STEP:]
+        word2 = word2[_TRUNCATION_STEP:]
         trunc = True
 
     if trunc:
-        s1 = "..." + s1
-        s2 = "..." + s2
+        word1 = _TRUNCATION_MARKER + word1
+        word2 = _TRUNCATION_MARKER + word2
 
-    max_len = max(len(s1), len(s2))
-    extra = ""
-    if max_len > maxw:
-        extra = "..."
+    max_len = max(len(word1), len(word2))
+    extra = _TRUNCATION_MARKER if max_len > _MAX_ALIGNMENT_WIDTH else ""
 
     # Write a chunk of both lines, aligned.
-    error_message += f"  E: {s1[:maxw]}{extra}\n"
-    error_message += f"  A: {s2[:maxw]}{extra}\n"
+    error_message += f"  E: {word1[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
+    error_message += f"  A: {word2[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
     # Write an indicator character under the different columns.
     error_message += "     "
     # sys.stderr.write('     ')
-    for j in range(min(maxw, max(len(s1), len(s2)))):
-        if s1[j : j + 1] != s2[j : j + 1]:
-            error_message += "^"
+    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
+        if word1[pos : pos + 1] != word2[pos : pos + 1]:
+            error_message += _ALIGNMENT_MARKER
             break
         else:
             error_message += " "
@@ -187,47 +190,32 @@ def _add_aligned_message(s1: str, s2: str, error_message: str) -> str:
     return error_message
 
 
-def remove_empty_lines(lines: list[str]) -> list[str]:
-    filtered_lines = []
-    for line in lines:
-        if line:
-            filtered_lines.append(line)
-    return filtered_lines
-
-
 def sorted_by_file_and_line(lines: list[str]) -> list[str]:
     def extract_parts_as_tuple(line: str) -> tuple[str, int]:
-        if len(line.split(":", maxsplit=2)) < 3:
+        if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
             return "", 0
 
-        fname, line_number, _ = line.split(":", maxsplit=2)
+        file_name, line_number, _ = line.split(":", maxsplit=2)
         try:
-            return fname, int(line_number)
+            return file_name, int(line_number)
         except ValueError:
             return "", 0
 
     return sorted(lines, key=extract_parts_as_tuple)
 
 
-def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[str]) -> None:
+def assert_expected_matched_actual(
+    expected: list[OutputMatcher], actual: list[str]
+) -> None:
     """Assert that two string arrays are equal.
 
     Display any differences in a human-readable form.
     """
 
-    def format_mismatched_line(line: str) -> str:
-        return f"  {str(line):<45} (diff)"
-
-    def format_matched_line(line: str, width: int = 100) -> str:
-        return f" {line[:width]}..." if len(line) > width else f" {line}"
-
-    def format_error_lines(lines: list[str]) -> str:
-        return "\n".join(lines) if lines else "  (empty)"
-
-    expected = sorted(expected, key=lambda om: (om.fname, om.lnum))
-    actual = sorted_by_file_and_line(remove_empty_lines(actual))
-
-    actual = remove_common_prefix(actual)
+    expected = sorted(expected, key=lambda om: (om.file_name, om.lnum))
+    actual = remove_common_prefix(
+        sorted_by_file_and_line(text.remove_empty_lines(actual))
+    )
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {
         i: (e, a)
@@ -246,43 +234,64 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
             if i in diff_lines:
                 expected_line, actual_line = diff_lines[i]
                 if expected_line:
-                    expected_message_lines.append(format_mismatched_line(str(expected_line)))
+                    expected_message_lines.append(
+                        text.format_mismatched_line(str(expected_line))
+                    )
                 if actual_line:
-                    actual_message_lines.append(format_mismatched_line(actual_line))
+                    actual_message_lines.append(
+                        text.format_mismatched_line(actual_line)
+                    )
 
             else:
                 expected_line, actual_line = expected[i], actual[i]
-                actual_message_lines.append(format_matched_line(actual_line))
-                expected_message_lines.append(format_matched_line(str(expected_line)))
+                actual_message_lines.append(
+                    text.format_matched_line(actual_line)
+                )
+                expected_message_lines.append(
+                    text.format_matched_line(str(expected_line))
+                )
 
         first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
 
-        failure_reason = "Output is not expected" if actual and not expected else "Invalid output"
+        failure_reason = (
+            "Output is not expected"
+            if actual and not expected
+            else "Invalid output"
+        )
 
         if actual_message_lines and expected_message_lines:
             if first_diff_line > 0:
                 expected_message_lines.insert(0, "  ...")
                 actual_message_lines.insert(0, "  ...")
 
-            if last_diff_line < len(actual) - 1 and last_diff_line < len(expected) - 1:
+            if (
+                last_diff_line < len(actual) - 1
+                and last_diff_line < len(expected) - 1
+            ):
                 expected_message_lines.append("  ...")
                 actual_message_lines.append("  ...")
 
         error_message = "Actual:\n{}\nExpected:\n{}\n".format(
-            format_error_lines(actual_message_lines), format_error_lines(expected_message_lines)
+            text.format_error_lines(actual_message_lines),
+            text.format_error_lines(expected_message_lines),
         )
 
         if expected_line and expected_line.regex:
-            error_message += "The actual output does not match the expected regex."
+            error_message += (
+                "The actual output does not match the expected regex."
+            )
         elif (
             first_diff_actual is not None
             and first_diff_expected is not None
             and (
                 len(first_diff_actual) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
-                or len(str(first_diff_expected)) >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
+                or len(str(first_diff_expected))
+                >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
             )
         ):
-            error_message = _add_aligned_message(str(first_diff_expected), first_diff_actual, error_message)
+            error_message = _add_aligned_message(
+                str(first_diff_expected), first_diff_actual, error_message
+            )
 
         raise TypecheckAssertionError(
             error_message=f"{failure_reason}: \n{error_message}",
@@ -290,19 +299,22 @@ def assert_expected_matched_actual(expected: list[OutputMatcher], actual: list[s
         )
 
 
-def extract_output_matchers_from_comments(fname: str, input_lines: list[str], regex: bool) -> list[OutputMatcher]:
+def extract_output_matchers_from_comments(
+    file_name: str, input_lines: list[str], regex: bool
+) -> list[OutputMatcher]:
     """Transform comments such as '# E: message' or
     '# E:3: message' in input.
 
     The result is a list pf output matchers
     """
-    fname = fname.removesuffix(".py")
+    file_name = file_name.removesuffix(".py")
     matchers = []
     for index, line in enumerate(input_lines):
         # The first in the split things isn't a comment
         for possible_err_comment in line.split(" # ")[1:]:
             match = re.search(
-                r"^([ENW])(?P<regex>[R])?:((?P<col>\d+):)? (?P<message>.*)$", possible_err_comment.strip()
+                r"^([ENW])(?P<regex>[R])?:((?P<col>\d+):)? (?P<message>.*)$",
+                possible_err_comment.strip(),
             )
             if match:
                 raw_severity = match.group(1)
@@ -310,7 +322,7 @@ def extract_output_matchers_from_comments(fname: str, input_lines: list[str], re
                 col = match.group("col")
                 matchers.append(
                     OutputMatcher(
-                        fname,
+                        file_name,
                         index + 1,
                         severity,
                         message=match.group("message"),
@@ -321,7 +333,9 @@ def extract_output_matchers_from_comments(fname: str, input_lines: list[str], re
     return matchers
 
 
-def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex: bool) -> list[OutputMatcher]:
+def extract_output_matchers_from_out(
+    out: str, params: Mapping[str, Any], regex: bool
+) -> list[OutputMatcher]:
     """Transform output lines such as 'function:9: E: message'
 
     The result is a list of output matchers
@@ -330,7 +344,8 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     lines = render_template(out, params).split("\n")
     for line in lines:
         match = re.search(
-            r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$", line.strip()
+            _MYPY_OUTPUT_LINE_RE,
+            line.strip(),
         )
         if match:
             raw_severity = match.group("severity")
@@ -349,15 +364,24 @@ def extract_output_matchers_from_out(out: str, params: Mapping[str, Any], regex:
     return matchers
 
 
-def render_template(template: str, data: Mapping[str, Any]) -> str:
+def render_template(template: str, parametrized_data: Mapping[str, Any]) -> str:
     if _rendering_env.variable_start_string not in template:
         return template
 
-    t: jinja2.environment.Template = _rendering_env.from_string(template)
-    return t.render({k: v if v is not None else "None" for k, v in data.items()})
+    jinja_template: jinja2.environment.Template = _rendering_env.from_string(
+        template
+    )
+    return jinja_template.render(
+        {
+            key: value_param if value_param is not None else "None"
+            for key, value_param in parametrized_data.items()
+        }
+    )
 
 
-def get_func_first_lnum(attr: Callable[..., None]) -> tuple[int, list[str]] | None:
+def get_func_first_lnum(
+    attr: Callable[..., None],
+) -> tuple[int, list[str]] | None:
     lines, _ = inspect.getsourcelines(attr)
     for lnum, line in enumerate(lines):
         no_space_line = line.strip()
