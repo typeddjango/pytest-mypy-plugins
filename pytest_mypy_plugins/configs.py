@@ -1,10 +1,9 @@
 from configparser import ConfigParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Final
+from typing import Final
 
-import tomli
-import tomli_w
+import tomlkit
 
 _TOML_TABLE_NAME: Final = "[tool.mypy]"
 _MYPY_TOML_SECTION: Final = "mypy"
@@ -39,19 +38,19 @@ def join_toml_configs(
 ) -> str | None:
     if base_pyproject_toml_fpath:
         with open(base_pyproject_toml_fpath) as file_config:
-            toml_config = tomli.loads(file_config.read())
+            toml_config = tomlkit.parse(file_config.read())
     else:
         # Empty document with `[tool.mypy]` empty table,
         # useful for overrides further.
-        toml_config = {}
+        toml_config = tomlkit.document()
 
     if (
         _TOOL_TOML_SECTION not in toml_config
         or _MYPY_TOML_SECTION not in toml_config[_TOOL_TOML_SECTION]
     ):
-        tool: dict[str, Any] = {}
-        tool[_MYPY_TOML_SECTION] = {}
-        toml_config[_TOOL_TOML_SECTION] = tool
+        tool = tomlkit.table(is_super_table=True)
+        tool.append(_MYPY_TOML_SECTION, tomlkit.table())
+        toml_config.append(_TOOL_TOML_SECTION, tool)
 
     if additional_mypy_config:
         if _TOML_TABLE_NAME not in additional_mypy_config:
@@ -59,9 +58,11 @@ def join_toml_configs(
                 f"{_TOML_TABLE_NAME}\n{dedent(additional_mypy_config)}"
             )
 
-        additional_data = tomli.loads(additional_mypy_config)
+        additional_data = tomlkit.parse(additional_mypy_config)
         toml_config[_TOOL_TOML_SECTION][_MYPY_TOML_SECTION].update(
-            additional_data[_TOOL_TOML_SECTION][_MYPY_TOML_SECTION].items(),
+            additional_data[_TOOL_TOML_SECTION][
+                _MYPY_TOML_SECTION
+            ].value.items(),
         )
 
     mypy_config_file_path = execution_path / "pyproject.toml"
@@ -71,10 +72,10 @@ def join_toml_configs(
         tool_mypy = toml_config[_TOOL_TOML_SECTION][_MYPY_TOML_SECTION]
 
         # construct toml output
-        min_toml = {}
-        min_tool: dict[str, Any] = {}
-        min_toml[_TOOL_TOML_SECTION] = min_tool
-        min_tool[_MYPY_TOML_SECTION] = tool_mypy
+        min_toml = tomlkit.document()
+        min_tool = tomlkit.table(is_super_table=True)
+        min_toml.append(_TOOL_TOML_SECTION, min_tool)
+        min_tool.append(_MYPY_TOML_SECTION, tool_mypy)
 
-        file_config.write(tomli_w.dumps(min_toml))
+        file_config.write(min_toml.as_string())
     return str(mypy_config_file_path)
