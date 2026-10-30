@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Final
+from typing import Final, Any
 
 import tomli
 import tomli_w
@@ -49,7 +49,7 @@ def join_toml_configs(
         _TOOL_TOML_SECTION not in toml_config
         or _MYPY_TOML_SECTION not in toml_config[_TOOL_TOML_SECTION]
     ):
-        tool = {}
+        tool: dict[str, Any] = {}
         tool[_MYPY_TOML_SECTION] = {}
         toml_config[_TOOL_TOML_SECTION] = tool
 
@@ -72,7 +72,7 @@ def join_toml_configs(
 
         # construct toml output
         min_toml = {}
-        min_tool = {}
+        min_tool: dict[str, Any] = {}
         min_toml[_TOOL_TOML_SECTION] = min_tool
         min_tool[_MYPY_TOML_SECTION] = tool_mypy
 
