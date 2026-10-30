@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 from pathlib import Path
 from textwrap import dedent
-from typing import Final, Any
+from typing import Any, Final
 
 import tomli
 import tomli_w
