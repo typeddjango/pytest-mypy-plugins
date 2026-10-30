@@ -8,9 +8,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from enum import IntEnum, unique
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TextIO, final
+from typing import TYPE_CHECKING, Any, Literal, TextIO
 
 import pytest
 from _pytest._code import ExceptionInfo
@@ -30,12 +29,11 @@ from pytest_mypy_plugins import configs, utils
 from pytest_mypy_plugins.collect import YamlTestFile
 from pytest_mypy_plugins.constants import COLON
 from pytest_mypy_plugins.logic import files
-from pytest_mypy_plugins.types import File
+from pytest_mypy_plugins.types import File, ReturnCodes
 from pytest_mypy_plugins.utils import (
     OutputMatcher,
     TypecheckAssertionError,
     assert_expected_matched_actual,
-    fname_to_module,
 )
 
 if TYPE_CHECKING:
@@ -66,18 +64,10 @@ def make_files(rootdir: Path, files_to_create: dict[str, str]) -> list[str]:
         fpath.parent.mkdir(parents=True, exist_ok=True)
         fpath.write_text(file_contents)
 
-        created_module = fname_to_module(fpath, root_path=rootdir)
+        created_module = files.fname_to_module(fpath, root_path=rootdir)
         if created_module:
             created_modules.append(created_module)
     return created_modules
-
-
-@final
-@unique
-class ReturnCodes(IntEnum):
-    SUCCESS = 0
-    FAIL = 1
-    FATAL_ERROR = 2
 
 
 def run_mypy_typechecking(

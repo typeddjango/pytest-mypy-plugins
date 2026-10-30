@@ -74,14 +74,6 @@ def temp_sys_modules() -> Iterator[None]:
         sys.modules = sys_modules.copy()
 
 
-def fname_to_module(fpath: Path, root_path: Path) -> str | None:
-    try:
-        relpath = fpath.relative_to(root_path).with_suffix("")
-        return str(relpath).replace(os.sep, ".")
-    except ValueError:
-        return None
-
-
 @dataclass
 class OutputMatcher:
     file_name: str

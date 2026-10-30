@@ -136,10 +136,8 @@ def test_join_missing_config3(
         warn_unused_ignores = true
         pretty = true
         show_error_codes = true
-
-        [[tool.mypy.overrides]]
-        # This section should be copied
-        module = "mymodule"
-        ignore_missing_imports = true
+        overrides = [
+            { module = "mymodule", ignore_missing_imports = true },
+        ]
         """,
     )

@@ -25,3 +25,11 @@ def parse_environment_variables(env_vars: list[str]) -> dict[str, str]:
         name, _, value = env_var.partition("=")
         parsed_vars[name] = value
     return parsed_vars
+
+
+def fname_to_module(fpath: Path, root_path: Path) -> str | None:
+    try:
+        relpath = fpath.relative_to(root_path).with_suffix("")
+        return str(relpath).replace(os.sep, ".")
+    except ValueError:
+        return None
