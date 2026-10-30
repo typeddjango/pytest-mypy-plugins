@@ -13,7 +13,7 @@ dependencies = [
     "pyyaml",
     "regex",
     "tomli",
-    "tomli_w"
+    "tomli_w",
 ]
 
 setup(
