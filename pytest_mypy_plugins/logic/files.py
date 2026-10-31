@@ -1,7 +1,11 @@
 import os
 from pathlib import Path
+from typing import Final
 
 from pytest_mypy_plugins.constants import COLON
+from pytest_mypy_plugins.types import File
+
+_MAX_LINE_SPLIT_PARTS: Final = 3
 
 
 def replace_fpath_with_module_name(line: str, rootdir: Path) -> str:
@@ -33,3 +37,24 @@ def fname_to_module(fpath: Path, root_path: Path) -> str | None:
         return str(relpath).replace(os.sep, ".")
     except ValueError:
         return None
+
+
+def make_test_file(test_file: File) -> None:
+    current_directory = Path.cwd()
+    fpath = current_directory / test_file.path
+    fpath.parent.mkdir(parents=True, exist_ok=True)
+    fpath.write_text(test_file.content)
+
+
+def sorted_by_file_and_line(lines: list[str]) -> list[str]:
+    def extract_parts_as_tuple(line: str) -> tuple[str, int]:
+        if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
+            return "", 0
+
+        file_name, line_number, _ = line.split(":", maxsplit=2)
+        try:
+            return file_name, int(line_number)
+        except ValueError:
+            return "", 0
+
+    return sorted(lines, key=extract_parts_as_tuple)

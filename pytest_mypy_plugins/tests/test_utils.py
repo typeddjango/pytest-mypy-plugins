@@ -4,12 +4,12 @@ from typing import NamedTuple
 import pytest
 
 from pytest_mypy_plugins import utils
+from pytest_mypy_plugins.logic.files import sorted_by_file_and_line
 from pytest_mypy_plugins.utils import (
     OutputMatcher,
     TypecheckAssertionError,
     assert_expected_matched_actual,
     extract_output_matchers_from_comments,
-    sorted_by_file_and_line,
 )
 
 

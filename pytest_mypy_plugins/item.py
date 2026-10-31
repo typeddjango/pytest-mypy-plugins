@@ -25,7 +25,7 @@ from mypy.metastore import (
     SqliteMetadataStore,
 )
 
-from pytest_mypy_plugins import configs, utils
+from pytest_mypy_plugins import configs, isolation, utils
 from pytest_mypy_plugins.collect import YamlTestFile
 from pytest_mypy_plugins.constants import COLON
 from pytest_mypy_plugins.logic import files
@@ -178,7 +178,11 @@ class MypyExecutor:
         self, mypy_cmd_options: list[Any]
     ) -> tuple[int, tuple[str, str]]:
         return_code = -1
-        with utils.temp_environ(), utils.temp_path(), utils.temp_sys_modules():
+        with (
+            isolation.temp_environ(),
+            isolation.temp_path(),
+            isolation.temp_sys_modules(),
+        ):
             # add custom environment variables
             for key, val in self.environment_variables.items():
                 os.environ[key] = val
@@ -302,18 +306,12 @@ class Runner:
 
         # make files
         for test_file in self.files:
-            self._make_test_file(test_file)
+            files.make_test_file(test_file)
 
         returncode, (stdout, stderr) = self.mypy_executor.execute(
             mypy_cmd_options
         )
         self.output_checker.check(returncode, stdout, stderr)
-
-    def _make_test_file(self, test_file: File) -> None:
-        current_directory = Path.cwd()
-        fpath = current_directory / test_file.path
-        fpath.parent.mkdir(parents=True, exist_ok=True)
-        fpath.write_text(test_file.content)
 
     def _prepare_mypy_cmd_options(self) -> list[str]:
         mypy_cmd_options = [
@@ -499,7 +497,7 @@ class YamlTestItem(pytest.Item):
                 self.execute_extension_hook()
 
             execution_path = Path(temp_dir.name).absolute()
-            with utils.cd(execution_path):
+            with isolation.cd(execution_path):
                 mypy_executor = MypyExecutor(
                     same_process=self.same_process,
                     execution_path=execution_path,

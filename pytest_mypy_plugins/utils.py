@@ -1,13 +1,10 @@
 # Borrowed from Pew.
 # See https://github.com/berdario/pew/blob/master/pew/_utils.py#L82
 import inspect
-import os
 import re
-import sys
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from itertools import zip_longest
-from pathlib import Path
 from typing import (
     Any,
     Final,
@@ -15,9 +12,8 @@ from typing import (
 
 import jinja2
 import regex
-from decorator import contextmanager
 
-from pytest_mypy_plugins.logic import text
+from pytest_mypy_plugins.logic import files, text
 
 _rendering_env = jinja2.Environment()
 
@@ -31,47 +27,10 @@ _SEVERITY_MAP: Final = {
 # the first different line has at least this many characters,
 _MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
 
-_MIN_ALIGNMENT_STRING_LENGTH: Final = 4
-_MAX_ALIGNMENT_WIDTH: Final = 72
-_MAX_LINE_SPLIT_PARTS: Final = 3
-_ALIGNMENT_MARKER: Final = "^"
-_TRUNCATION_MARKER: Final = "..."
-_TRUNCATION_STEP: Final = 10
-_TRUNCATION_WINDOW: Final = 30
 
 _MYPY_OUTPUT_LINE_RE: Final = re.compile(
     r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$"
 )
-
-
-@contextmanager
-def temp_environ() -> Iterator[None]:
-    """Allow the ability to set os.environ temporarily"""
-    environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(environ)
-
-
-@contextmanager
-def temp_path() -> Iterator[None]:
-    """A context manager which allows the ability to set sys.path temporarily"""
-    path = sys.path[:]
-    try:
-        yield
-    finally:
-        sys.path = path[:]
-
-
-@contextmanager
-def temp_sys_modules() -> Iterator[None]:
-    sys_modules = sys.modules.copy()
-    try:
-        yield
-    finally:
-        sys.modules = sys_modules.copy()
 
 
 @dataclass
@@ -124,86 +83,6 @@ class TypecheckAssertionError(AssertionError):
         return self.error_message
 
 
-def remove_common_prefix(lines: list[str]) -> list[str]:
-    """Remove common directory prefix from all strings in a.
-
-    This uses a naive string replace; it seems to work well enough. Also
-    remove trailing carriage returns.
-    """
-    cleaned_lines = []
-    for line in lines:
-        # Ignore spaces at end of line.
-        line = re.sub(" +$", "", line)
-        cleaned_lines.append(re.sub("\\r$", "", line))
-    return cleaned_lines
-
-
-def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
-    """Align word1 and word2 so that the their first difference is highlighted.
-
-    For example, if word1 is 'foobar' and word2 is 'fobar', display the
-    following lines:
-
-      E: foobar
-      A: fobar
-           ^
-
-    If word1 and word2 are long, only display a fragment of the strings around the
-    first difference. If word1 is very short, do nothing.
-    """
-
-    # Seeing what went wrong is trivial even without alignment if the expected
-    # string is very short. In this case do nothing to simplify output.
-    if len(word1) < _MIN_ALIGNMENT_STRING_LENGTH:
-        return error_message
-
-    error_message += "Alignment of first line difference:\n"
-
-    assert word1 != word2
-
-    trunc = False
-    while word1[:_TRUNCATION_WINDOW] == word2[:_TRUNCATION_WINDOW]:
-        word1 = word1[_TRUNCATION_STEP:]
-        word2 = word2[_TRUNCATION_STEP:]
-        trunc = True
-
-    if trunc:
-        word1 = _TRUNCATION_MARKER + word1
-        word2 = _TRUNCATION_MARKER + word2
-
-    max_len = max(len(word1), len(word2))
-    extra = _TRUNCATION_MARKER if max_len > _MAX_ALIGNMENT_WIDTH else ""
-
-    # Write a chunk of both lines, aligned.
-    error_message += f"  E: {word1[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
-    error_message += f"  A: {word2[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
-    # Write an indicator character under the different columns.
-    error_message += "     "
-    # sys.stderr.write('     ')
-    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
-        if word1[pos : pos + 1] != word2[pos : pos + 1]:
-            error_message += _ALIGNMENT_MARKER
-            break
-        else:
-            error_message += " "
-    error_message += "\n"
-    return error_message
-
-
-def sorted_by_file_and_line(lines: list[str]) -> list[str]:
-    def extract_parts_as_tuple(line: str) -> tuple[str, int]:
-        if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
-            return "", 0
-
-        file_name, line_number, _ = line.split(":", maxsplit=2)
-        try:
-            return file_name, int(line_number)
-        except ValueError:
-            return "", 0
-
-    return sorted(lines, key=extract_parts_as_tuple)
-
-
 def assert_expected_matched_actual(
     expected: list[OutputMatcher], actual: list[str]
 ) -> None:
@@ -213,8 +92,8 @@ def assert_expected_matched_actual(
     """
 
     expected = sorted(expected, key=lambda om: (om.file_name, om.lnum))
-    actual = remove_common_prefix(
-        sorted_by_file_and_line(text.remove_empty_lines(actual))
+    actual = text.remove_common_prefix(
+        files.sorted_by_file_and_line(text.remove_empty_lines(actual))
     )
 
     diff_lines: dict[int, tuple[OutputMatcher, str]] = {
@@ -289,7 +168,7 @@ def assert_expected_matched_actual(
                 >= _MIN_LINE_LENGTH_FOR_ALIGNMENT
             )
         ):
-            error_message = _add_aligned_message(
+            error_message = text.add_aligned_message(
                 str(first_diff_expected), first_diff_actual, error_message
             )
 
@@ -388,18 +267,3 @@ def get_func_first_lnum(
         if f"def {attr.__name__}" in no_space_line:
             return lnum, lines[lnum + 1 :]
     raise ValueError(f'No line "def {attr.__name__}" found')
-
-
-@contextmanager
-def cd(path: str | Path) -> Iterator[None]:
-    """Context manager to temporarily change working directories"""
-    if not path:
-        return
-    prev_cwd = Path.cwd().as_posix()
-    if isinstance(path, Path):
-        path = path.as_posix()
-    os.chdir(str(path))
-    try:
-        yield
-    finally:
-        os.chdir(prev_cwd)
