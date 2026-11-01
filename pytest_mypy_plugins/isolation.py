@@ -20,7 +20,7 @@ def temp_environ() -> Iterator[None]:
 @contextmanager
 def temp_path() -> Iterator[None]:
     """Allow the ability to set ``sys.path`` temporarily."""
-    path = sys.path
+    path = sys.path.copy()
     try:
         yield
     finally:

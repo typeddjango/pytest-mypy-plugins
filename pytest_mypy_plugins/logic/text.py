@@ -14,7 +14,8 @@ def format_mismatched_line(line: str) -> str:
 
 
 def format_matched_line(line: str, width: int = 100) -> str:
-    return f" {line[:width]}..." if len(line) > width else f" {line}"
+    line = line[:width]
+    return f" {line}..." if len(line) > width else f" {line}"
 
 
 def format_error_lines(lines: list[str]) -> str:
@@ -44,7 +45,7 @@ def add_aligned_message(word1: str, word2: str, error_message: str) -> str:
     if len(word1) < _MIN_ALIGNMENT_STRING_LENGTH:
         return error_message
 
-    error_message += "Alignment of first line difference:\n"
+    error_message += "Alignment of first line difference:\n"  # noqa: WPS336
 
     assert word1 != word2
 
@@ -60,20 +61,14 @@ def add_aligned_message(word1: str, word2: str, error_message: str) -> str:
 
     max_len = max(len(word1), len(word2))
     extra = _TRUNCATION_MARKER if max_len > _MAX_ALIGNMENT_WIDTH else ""
+    word1_format = word1[:_MAX_ALIGNMENT_WIDTH] + extra
+    word2_format = word2[:_MAX_ALIGNMENT_WIDTH] + extra
 
     # Write a chunk of both lines, aligned.
-    error_message += f"  E: {word1[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
-    error_message += f"  A: {word2[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
+    error_message += f"  E: {word1_format}\n"  # noqa: WPS336
+    error_message += f"  A: {word2_format}\n"  # noqa: WPS336
     # Write an indicator character under the different columns.
-    error_message += "     "
-    # sys.stderr.write('     ')
-    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
-        if word1[pos : pos + 1] != word2[pos : pos + 1]:
-            error_message += _ALIGNMENT_MARKER
-            break
-        else:
-            error_message += " "
-    error_message += "\n"
+    error_message += _format_alignment_pointer(word1, word2, max_len)
     return error_message
 
 
@@ -89,3 +84,17 @@ def remove_common_prefix(lines: list[str]) -> list[str]:
         line = re.sub(" +$", "", line)
         cleaned_lines.append(re.sub("\\r$", "", line))
     return cleaned_lines
+
+
+def _format_alignment_pointer(word1: str, word2: str, max_len: int) -> str:
+    error_message = ["     "]
+    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
+        word1 = word1[pos : pos + 1]
+        word2 = word2[pos : pos + 1]
+        if word1 == word2:
+            error_message.append(" ")
+        else:
+            error_message.append(_ALIGNMENT_MARKER)
+            break
+    error_message.append("\n")
+    return "".join(error_message)

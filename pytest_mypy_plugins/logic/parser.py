@@ -5,32 +5,41 @@ from pytest_mypy_plugins.types import File
 
 
 def parse_parametrized(
-    params: list[Mapping[str, Any]],
+    parameters_case: list[Mapping[str, Any]],
 ) -> list[Mapping[str, Any]]:
-    if not params:
+    if not parameters_case:
         return [{}]
 
-    parsed_params: list[Mapping[str, Any]] = []
-    expected_keys: set[str] = set(sorted(params[0].keys()))
-    for idx, param in enumerate(params):
-        param_keys = set(sorted(param.keys()))
-        if expected_keys.intersection(param_keys) != expected_keys:
-            raise ValueError(
-                "All parametrized entries must have same keys."
-                f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
-                f"was spotted at {idx} position",
-            )
-        parsed_params.append(
-            {k: v for k, v in param.items() if not k.startswith("__")}
+    expected_keys: set[str] = set(sorted(parameters_case[0].keys()))
+    return [
+        _parse_param_case(param_case, idx, expected_keys)
+        for idx, param_case in enumerate(parameters_case)
+    ]
+
+
+def _parse_param_case(
+    param_case: Mapping[str, Any], idx: int, expected_keys: set[str]
+) -> Mapping[str, Any]:
+    param_keys = set(sorted(param_case.keys()))
+    if expected_keys.intersection(param_keys) != expected_keys:
+        raise ValueError(
+            "All parametrized entries must have same keys."  # noqa: WPS237
+            f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '
+            f"was spotted at {idx} position",
         )
+    return {
+        param_key: param_value
+        for param_key, param_value in param_case.items()
+        if not param_key.startswith("__")
+    }
 
-    return parsed_params
 
-
-def parse_test_files(test_files: list[dict[str, Any]]) -> list[File]:
-    files: list[File] = []
-    for test_file in test_files:
-        path = test_file.get("path", "main.py")
-        file = File(path=path, content=test_file.get("content", ""))
-        files.append(file)
-    return files
+def parse_test_files(file_specs: list[dict[str, Any]]) -> list[File]:
+    """Convert raw YAML file entries into ``File`` objects."""
+    return [
+        File(
+            path=file_info.get("path", "main.py"),
+            content=file_info.get("content", ""),
+        )
+        for file_info in file_specs
+    ]
