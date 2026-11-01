@@ -26,8 +26,8 @@ def maybe_to_abspath(rel_or_abs: str, rootdir: Path | None) -> str:
 def parse_environment_variables(env_vars: list[str]) -> dict[str, str]:
     parsed_vars: dict[str, str] = {}
     for env_var in env_vars:
-        name, _, value = env_var.partition("=")
-        parsed_vars[name] = value
+        name, _, value_env = env_var.partition("=")
+        parsed_vars[name] = value_env
     return parsed_vars
 
 
@@ -47,7 +47,7 @@ def make_test_file(test_file: File) -> None:
 
 
 def sorted_by_file_and_line(lines: list[str]) -> list[str]:
-    def extract_parts_as_tuple(line: str) -> tuple[str, int]:
+    def extract_parts_as_tuple(line: str) -> tuple[str, int]:  # noqa: WPS430
         if len(line.split(":", maxsplit=2)) < _MAX_LINE_SPLIT_PARTS:
             return "", 0
 

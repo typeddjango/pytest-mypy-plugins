@@ -23,12 +23,14 @@ if TYPE_CHECKING:
 _STORE_TRUE_ACTION: Final = "store_true"
 
 
-def validate_schema(data: Any, *, is_closed: bool = False) -> None:
+def validate_schema(yml_data: Any, *, is_closed: bool = False) -> None:
     """Validate the schema of the file-under-test."""
     # Unfortunately, yaml.safe_load() returns Any,
     # so we make our intention explicit here.
-    if not isinstance(data, list):
-        raise TypeError(f"Test file has to be YAML list, got {type(data)!r}.")
+    if not isinstance(yml_data, list):
+        raise TypeError(
+            f"Test file has to be YAML list, got {type(yml_data)!r}."
+        )
 
     schema = json.loads(
         (pathlib.Path(__file__).parent / "schema.json").read_text("utf8")
@@ -39,7 +41,7 @@ def validate_schema(data: Any, *, is_closed: bool = False) -> None:
     }
     schema["items"]["additionalProperties"] = not is_closed
 
-    jsonschema.validate(instance=data, schema=schema)
+    jsonschema.validate(instance=yml_data, schema=schema)
 
 
 class SafeLineLoader(yaml.SafeLoader):
