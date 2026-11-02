@@ -12,7 +12,11 @@ from typing import (
 import jinja2
 
 from pytest_mypy_plugins.logic import files, text
-from pytest_mypy_plugins.types import DiffMessageLines, OutputMatcher
+from pytest_mypy_plugins.types import (
+    DiffMessageLines,
+    OutputMatcher,
+    TypecheckAssertionError,
+)
 
 _rendering_env = jinja2.Environment()
 
@@ -30,20 +34,6 @@ _MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
 _MYPY_OUTPUT_LINE_RE: Final = re.compile(
     r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$"
 )
-
-
-class TypecheckAssertionError(AssertionError):
-    def __init__(
-        self, error_message: str | None = None, lineno: int = 0
-    ) -> None:
-        self.error_message = error_message or ""
-        self.lineno = lineno
-
-    def first_line(self) -> str:
-        return self.__class__.__name__ + '(message="Invalid output")'
-
-    def __str__(self) -> str:
-        return self.error_message
 
 
 def assert_expected_matched_actual(
@@ -261,7 +251,5 @@ def _create_message_lines(
             )
 
     return DiffMessageLines(
-        expected_message_lines,
-        actual_message_lines,
-        last_expected_line
+        expected_message_lines, actual_message_lines, last_expected_line
     )

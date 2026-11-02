@@ -5,9 +5,8 @@ import pytest
 
 from pytest_mypy_plugins import utils
 from pytest_mypy_plugins.logic.files import sorted_by_file_and_line
-from pytest_mypy_plugins.types import OutputMatcher
+from pytest_mypy_plugins.types import OutputMatcher, TypecheckAssertionError
 from pytest_mypy_plugins.utils import (
-    TypecheckAssertionError,
     assert_expected_matched_actual,
     extract_output_matchers_from_comments,
 )

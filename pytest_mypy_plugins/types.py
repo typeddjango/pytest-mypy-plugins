@@ -41,6 +41,20 @@ class OutputMatcher:
         return len(str(self))
 
 
+class TypecheckAssertionError(AssertionError):
+    def __init__(
+        self, error_message: str | None = None, lineno: int = 0
+    ) -> None:
+        self.error_message = error_message or ""
+        self.lineno = lineno
+
+    def first_line(self) -> str:
+        return self.__class__.__name__ + '(message="Invalid output")'
+
+    def __str__(self) -> str:
+        return self.error_message
+
+
 @dataclass
 class File:
     path: str

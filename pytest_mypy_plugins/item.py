@@ -29,9 +29,13 @@ from pytest_mypy_plugins import configs, isolation
 from pytest_mypy_plugins.collect import YamlTestFile
 from pytest_mypy_plugins.constants import COLON
 from pytest_mypy_plugins.logic import files
-from pytest_mypy_plugins.types import File, OutputMatcher, ReturnCodes
-from pytest_mypy_plugins.utils import (
+from pytest_mypy_plugins.types import (
+    File,
+    OutputMatcher,
+    ReturnCodes,
     TypecheckAssertionError,
+)
+from pytest_mypy_plugins.utils import (
     assert_expected_matched_actual,
 )
 
