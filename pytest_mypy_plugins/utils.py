@@ -3,7 +3,6 @@
 import inspect
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from itertools import zip_longest
 from typing import (
     Any,
@@ -11,9 +10,9 @@ from typing import (
 )
 
 import jinja2
-import regex
 
 from pytest_mypy_plugins.logic import files, text
+from pytest_mypy_plugins.types import DiffMessageLines, OutputMatcher
 
 _rendering_env = jinja2.Environment()
 
@@ -31,42 +30,6 @@ _MIN_LINE_LENGTH_FOR_ALIGNMENT: Final = 5
 _MYPY_OUTPUT_LINE_RE: Final = re.compile(
     r"^(?P<fname>.+):(?P<lnum>\d+): (?P<severity>[A-Za-z]+):((?P<col>\d+):)? (?P<message>.*)$"
 )
-
-
-@dataclass
-class OutputMatcher:
-    file_name: str
-    lnum: int
-    severity: str
-    message: str
-    regex: bool
-    col: str | None = None
-
-    def matches(self, actual: str) -> bool:
-        if self.regex:
-            pattern = (
-                regex.escape(
-                    f"{self.file_name}:{self.lnum}: {self.severity}: "
-                    if self.col is None
-                    else f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: "
-                )
-                + self.message
-            )
-            return bool(regex.match(pattern, actual))
-        return str(self) == actual
-
-    def __str__(self) -> str:
-        if self.col is None:
-            return (
-                f"{self.file_name}:{self.lnum}: {self.severity}: {self.message}"
-            )
-        return f"{self.file_name}:{self.lnum}:{self.col}: {self.severity}: {self.message}"
-
-    def __format__(self, format_spec: str) -> str:
-        return format_spec.format(str(self))
-
-    def __len__(self) -> int:
-        return len(str(self))
 
 
 class TypecheckAssertionError(AssertionError):
@@ -96,39 +59,17 @@ def assert_expected_matched_actual(
         files.sorted_by_file_and_line(text.remove_empty_lines(actual))
     )
 
-    diff_lines: dict[int, tuple[OutputMatcher, str]] = {
-        i: (e, a)
-        for i, (e, a) in enumerate(zip_longest(expected, actual))
-        if e is None or a is None or not e.matches(a)
-    }
+    diff_lines: dict[int, tuple[OutputMatcher, str]] = _create_diff_lines(
+        expected, actual
+    )
 
     if diff_lines:
         first_diff_line = min(diff_lines.keys())
         last_diff_line = max(diff_lines.keys())
 
-        expected_message_lines = []
-        actual_message_lines = []
-
-        for i in range(first_diff_line, last_diff_line + 1):
-            if i in diff_lines:
-                expected_line, actual_line = diff_lines[i]
-                if expected_line:
-                    expected_message_lines.append(
-                        text.format_mismatched_line(str(expected_line))
-                    )
-                if actual_line:
-                    actual_message_lines.append(
-                        text.format_mismatched_line(actual_line)
-                    )
-
-            else:
-                expected_line, actual_line = expected[i], actual[i]
-                actual_message_lines.append(
-                    text.format_matched_line(actual_line)
-                )
-                expected_message_lines.append(
-                    text.format_matched_line(str(expected_line))
-                )
+        message_lines = _create_message_lines(
+            expected, actual, first_diff_line, last_diff_line, diff_lines
+        )
 
         first_diff_expected, first_diff_actual = diff_lines[first_diff_line]
 
@@ -138,24 +79,27 @@ def assert_expected_matched_actual(
             else "Invalid output"
         )
 
-        if actual_message_lines and expected_message_lines:
+        if message_lines.actual and message_lines.expected:
             if first_diff_line > 0:
-                expected_message_lines.insert(0, "  ...")
-                actual_message_lines.insert(0, "  ...")
+                message_lines.expected.insert(0, "  ...")
+                message_lines.actual.insert(0, "  ...")
 
             if (
                 last_diff_line < len(actual) - 1
                 and last_diff_line < len(expected) - 1
             ):
-                expected_message_lines.append("  ...")
-                actual_message_lines.append("  ...")
+                message_lines.expected.append("  ...")
+                message_lines.actual.append("  ...")
 
         error_message = "Actual:\n{}\nExpected:\n{}\n".format(
-            text.format_error_lines(actual_message_lines),
-            text.format_error_lines(expected_message_lines),
+            text.format_error_lines(message_lines.actual),
+            text.format_error_lines(message_lines.expected),
         )
 
-        if expected_line and expected_line.regex:
+        if (
+            message_lines.last_expected_line
+            and message_lines.last_expected_line.regex
+        ):
             error_message += (
                 "The actual output does not match the expected regex."
             )
@@ -267,3 +211,57 @@ def get_func_first_lnum(
         if f"def {attr.__name__}" in no_space_line:
             return lnum, lines[lnum + 1 :]
     raise ValueError(f'No line "def {attr.__name__}" found')
+
+
+def _create_diff_lines(
+    expected: list[OutputMatcher], actual: list[str]
+) -> dict[int, tuple[OutputMatcher, str]]:
+    diff_lines = {}
+    for line, (expected_line, actual_line) in enumerate(
+        zip_longest(expected, actual)
+    ):
+        if (
+            expected_line is None
+            or actual_line is None
+            or not expected_line.matches(actual_line)
+        ):
+            diff_lines[line] = (expected_line, actual_line)
+
+    return diff_lines
+
+
+def _create_message_lines(
+    expected: list[OutputMatcher],
+    actual: list[str],
+    first_diff_line: int,
+    last_diff_line: int,
+    diff_lines: dict[int, tuple[OutputMatcher, str]],
+) -> DiffMessageLines:
+    expected_message_lines = []
+    actual_message_lines = []
+    last_expected_line = None
+
+    for line in range(first_diff_line, last_diff_line + 1):
+        if line in diff_lines:
+            expected_line, actual_line = diff_lines[line]
+            if expected_line:
+                expected_message_lines.append(
+                    text.format_mismatched_line(str(expected_line))
+                )
+            if actual_line:
+                actual_message_lines.append(
+                    text.format_mismatched_line(actual_line)
+                )
+
+        else:
+            last_expected_line, actual_line = expected[line], actual[line]
+            actual_message_lines.append(text.format_matched_line(actual_line))
+            expected_message_lines.append(
+                text.format_matched_line(str(expected_line))
+            )
+
+    return DiffMessageLines(
+        expected_message_lines,
+        actual_message_lines,
+        last_expected_line
+    )

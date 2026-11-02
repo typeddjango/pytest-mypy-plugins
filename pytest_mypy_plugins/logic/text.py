@@ -89,9 +89,9 @@ def remove_common_prefix(lines: list[str]) -> list[str]:
 def _format_alignment_pointer(word1: str, word2: str, max_len: int) -> str:
     error_message = ["     "]
     for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
-        word1 = word1[pos : pos + 1]
-        word2 = word2[pos : pos + 1]
-        if word1 == word2:
+        word1_pos = word1[pos : pos + 1]
+        word2_pos = word2[pos : pos + 1]
+        if word1_pos == word2_pos:
             error_message.append(" ")
         else:
             error_message.append(_ALIGNMENT_MARKER)

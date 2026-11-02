@@ -25,13 +25,12 @@ from mypy.metastore import (
     SqliteMetadataStore,
 )
 
-from pytest_mypy_plugins import configs, isolation, utils
+from pytest_mypy_plugins import configs, isolation
 from pytest_mypy_plugins.collect import YamlTestFile
 from pytest_mypy_plugins.constants import COLON
 from pytest_mypy_plugins.logic import files
-from pytest_mypy_plugins.types import File, ReturnCodes
+from pytest_mypy_plugins.types import File, OutputMatcher, ReturnCodes
 from pytest_mypy_plugins.utils import (
-    OutputMatcher,
     TypecheckAssertionError,
     assert_expected_matched_actual,
 )
