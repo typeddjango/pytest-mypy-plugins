@@ -178,15 +178,7 @@ def _add_aligned_message(word1: str, word2: str, error_message: str) -> str:
     error_message += f"  E: {word1[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
     error_message += f"  A: {word2[:_MAX_ALIGNMENT_WIDTH]}{extra}\n"
     # Write an indicator character under the different columns.
-    error_message += "     "
-    # sys.stderr.write('     ')
-    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
-        if word1[pos : pos + 1] != word2[pos : pos + 1]:
-            error_message += _ALIGNMENT_MARKER
-            break
-        else:
-            error_message += " "
-    error_message += "\n"
+    error_message += _build_first_difference_marker(word1, word2, max_len)
     return error_message
 
 
@@ -403,3 +395,14 @@ def cd(path: str | Path) -> Iterator[None]:
         yield
     finally:
         os.chdir(prev_cwd)
+
+
+def _build_first_difference_marker(word1: str, word2: str, max_len: int) -> str:
+    marker_line: list[str] = ["     "]
+    for pos in range(min(_MAX_ALIGNMENT_WIDTH, max_len)):
+        if word1[pos : pos + 1] != word2[pos : pos + 1]:
+            marker_line.append(_ALIGNMENT_MARKER)
+            break
+        marker_line.append(" ")
+    marker_line.append("\n")
+    return "".join(marker_line)
