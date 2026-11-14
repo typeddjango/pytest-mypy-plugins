@@ -10,6 +10,13 @@ def parse_parametrized(
     if not params:
         return [{}]
 
+    unique_reprs = {
+        repr(sorted(param.items(), key=lambda item: item[0]))
+        for param in params
+    }
+    if len(unique_reprs) != len(params):
+        raise ValueError("Params in test must be unique.")
+
     parsed_params: list[Mapping[str, Any]] = []
     expected_keys: set[str] = set(sorted(params[0].keys()))
     for idx, param in enumerate(params):
