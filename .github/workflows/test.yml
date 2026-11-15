@@ -37,7 +37,7 @@ jobs:
         # Force correct `pytest` version for different envs:
         pip install -U "pytest${{ matrix.pytest-version }}"
     - name: Run tests
-      run: pytest
+      run: make unit
 
   test-mypy-compat:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
         pip install -e .
         pip install -U "mypy${{ matrix.mypy-version }}"
     - name: Run cache-cleanup tests
-      run: pytest pytest_mypy_plugins/tests/test_mypy_cache.py
+      run: make unit-cache
 
   lint:
     runs-on: ubuntu-latest
@@ -80,6 +80,5 @@ jobs:
         pip install -r requirements.txt
     - name: Run linters
       run: |
-        mypy .
-        black --check .
-        isort --check --diff .
+        make type-check
+        make lint
