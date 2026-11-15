@@ -108,7 +108,7 @@ Implementation notes:
 - `main` must be non-empty string that evaluates to valid **Python** code,
 - `content` of each of extra files must evaluate to valid **Python** code,
 - `parametrized` entries must all be the objects of the same _type_. It simply means that each
-  entry must have **exact** same set of keys,
+  entry must have **exact** same set of keys, and no two entries may be identical,
 - `skip` - an expression set in `skip` is passed directly into
   [`eval`](https://docs.python.org/3/library/functions.html#eval). It is advised to take a peek and
   learn about how `eval` works.
