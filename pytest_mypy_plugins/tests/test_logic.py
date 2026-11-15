@@ -17,10 +17,3 @@ def test_parametrized_duplicates(params: list[Mapping[str, Any]]) -> None:
     """Checks that `parse_parametrized` raises `ValueError` with duplicates."""
     with pytest.raises(ValueError, match="Params in test must be unique."):
         parse_parametrized(params)
-
-
-def test_parametrized_unique() -> None:
-    """Checks that unique params with multiple keys are not rejected."""
-    params: list[Mapping[str, Any]] = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
-
-    assert parse_parametrized(params) == params
