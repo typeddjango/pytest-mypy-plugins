@@ -18,9 +18,9 @@ def parse_parametrized(
         raise ValueError("Params in test must be unique.")
 
     parsed_params: list[Mapping[str, Any]] = []
-    expected_keys: set[str] = set(sorted(params[0].keys()))
+    expected_keys: set[str] = set(params[0].keys())
     for idx, param in enumerate(params):
-        param_keys = set(sorted(param.keys()))
+        param_keys = set(param.keys())
         if param_keys != expected_keys:
             raise ValueError(
                 "All parametrized entries must have same keys."
