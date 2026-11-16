@@ -21,7 +21,7 @@ def parse_parametrized(
     expected_keys: set[str] = set(sorted(params[0].keys()))
     for idx, param in enumerate(params):
         param_keys = set(sorted(param.keys()))
-        if expected_keys.intersection(param_keys) != expected_keys:
+        if param_keys != expected_keys:
             raise ValueError(
                 "All parametrized entries must have same keys."
                 f'First entry is {", ".join(expected_keys)} but {", ".join(param_keys)} '

@@ -1,5 +1,12 @@
 # Version history
 
+## Unreleased
+
+### Bugfixes
+
+- Fixed key validation in `parse_parametrized`, #219
+
+
 ## 4.1.0
 
 ### Features
