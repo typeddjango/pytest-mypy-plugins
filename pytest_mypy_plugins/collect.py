@@ -71,11 +71,6 @@ class YamlTestFile(pytest.File):
             parsed_file, is_closed=self.config.option.mypy_closed_schema
         )
 
-        if not isinstance(parsed_file, list):
-            raise ValueError(
-                f"Test file has to be YAML list, got {type(parsed_file)!r}."
-            )
-
         for raw_test in parsed_file:
             test_name_prefix = raw_test["case"]
             if " " in test_name_prefix:

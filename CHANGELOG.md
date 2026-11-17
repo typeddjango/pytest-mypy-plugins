@@ -154,7 +154,7 @@
 
 ### Bugfixes
 
-- Removes unused depenencies for `python < 3.7`
+- Removes unused dependencies for `python < 3.7`
 - Fixes compatibility with pytest 7.2, broken due to a private import from
   `py._path`.
 
@@ -221,7 +221,7 @@ We missed this released by mistake.
 
 ### Bugfixes
 
-- Changes how `MYPYPATH` and `PYTHONPATH` are calcualted. We now expand `$PWD` variable and also include relative paths specified in `env:` section
+- Changes how `MYPYPATH` and `PYTHONPATH` are calculated. We now expand `$PWD` variable and also include relative paths specified in `env:` section
 
 
 ## Version 1.6.0
