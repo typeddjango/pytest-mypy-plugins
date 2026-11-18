@@ -98,7 +98,7 @@ On top of that, each case must comply to following types:
 ```python
 class File:
     path: str
-    content: Optional[str] = None
+    content: str | None = None
 Parameter = Mapping[str, Any]
 ```
 
@@ -169,7 +169,7 @@ Properties that you can parametrize:
   main: |
     reveal_type('abc')
   out: |
-    main:1: note: Revealed type is "builtins.str"
+    main:1: note: Revealed type is "Literal['abc']?"
 ```
 
 #### 4. Regular expressions in expectations
@@ -200,7 +200,7 @@ Properties that you can parametrize:
   marks:
     - slow
   main: |
-    reveal_type('abc')  # N: Revealed type is "builtins.str"
+    reveal_type('abc')  # N: Revealed type is "Literal['abc']?"
 ```
 
 Register the marker in your `pytest.ini` / `pyproject.toml`, then run only the
