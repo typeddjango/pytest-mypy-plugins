@@ -43,7 +43,7 @@ Our custom type assertion uses `reveal_type` helper and custom output matchers:
 - case: using_reveal_type
   main: |
     instance = 1
-    reveal_type(instance)  # N: Revealed type is 'builtins.int'
+    reveal_type(instance)  # N: Revealed type is "builtins.int"
 ```
 
 This method also allows to use `# E:` for matching exact error messages and codes.
@@ -68,7 +68,7 @@ You can also specify `PYTHONPATH`, `MYPYPATH`, or any other environment variable
     from pair import Pair
 
     instance: Pair
-    reveal_type(instance)  # N: Revealed type is 'pair.Pair'
+    reveal_type(instance)  # N: Revealed type is "pair.Pair"
   env:
     - MYPYPATH=../fixtures
 ```
@@ -132,9 +132,9 @@ All you have to do, add the following line at the top of your YAML file:
 - case: request_object_has_user_of_type_auth_user_model
   main: |
     from django.http.request import HttpRequest
-    reveal_type(HttpRequest().user)  # N: Revealed type is 'myapp.models.MyUser'
+    reveal_type(HttpRequest().user)  # N: Revealed type is "myapp.models.MyUser"
     # check that other fields work ok
-    reveal_type(HttpRequest().method)  # N: Revealed type is 'Union[builtins.str, None]'
+    reveal_type(HttpRequest().method)  # N: Revealed type is "Union[builtins.str, None]"
   files:
     - path: myapp/__init__.py
     - path: myapp/models.py
@@ -150,11 +150,11 @@ All you have to do, add the following line at the top of your YAML file:
 - case: with_params
   parametrized:
     - val: 1
-      rt: builtins.int
+      rt: Literal[1]?
     - val: 1.0
-      rt: builtins.float
+      rt: float
   main: |
-    reveal_type({{ val }})  # N: Revealed type is '{{ rt }}'
+    reveal_type({{ val }})  # N: Revealed type is "{{ rt }}"
 ```
 
 Properties that you can parametrize:
@@ -169,7 +169,7 @@ Properties that you can parametrize:
   main: |
     reveal_type('abc')
   out: |
-    main:1: note: Revealed type is 'builtins.str'
+    main:1: note: Revealed type is "builtins.str"
 ```
 
 #### 4. Regular expressions in expectations
@@ -200,7 +200,7 @@ Properties that you can parametrize:
   marks:
     - slow
   main: |
-    reveal_type('abc')  # N: Revealed type is 'builtins.str'
+    reveal_type('abc')  # N: Revealed type is "builtins.str"
 ```
 
 Register the marker in your `pytest.ini` / `pyproject.toml`, then run only the
