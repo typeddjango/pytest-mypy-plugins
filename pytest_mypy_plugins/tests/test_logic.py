@@ -27,6 +27,12 @@ def test_parametrized_duplicates(params: list[Mapping[str, Any]]) -> None:
     ],
 )
 def test_parametrized_with_wrong_keys(params: list[Mapping[str, Any]]) -> None:
+    """
+    Checks that `parse_parametrized` raises `ValueError`.
+
+    This test verifies that entries with extra keys are rejected.
+    See https://github.com/typeddjango/pytest-mypy-plugins/pull/219
+    """
     with pytest.raises(
         ValueError, match="All parametrized entries must have same keys."
     ):
