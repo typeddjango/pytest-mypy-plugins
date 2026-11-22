@@ -43,7 +43,7 @@ Our custom type assertion uses `reveal_type` helper and custom output matchers:
 - case: using_reveal_type
   main: |
     instance = 1
-    reveal_type(instance)  # N: Revealed type is "builtins.int"
+    reveal_type(instance)  # N: Revealed type is "int"
 ```
 
 This method also allows to use `# E:` for matching exact error messages and codes.
